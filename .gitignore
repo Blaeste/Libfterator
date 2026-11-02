@@ -1,36 +1,14 @@
-# Dossiers temporaires et de test
+# Build and run outputs
 build/
 out/
-libft/
-
-# Fichiers de logs
-*.log
-
-# Fichiers temporaires
-*.tmp
-*~
-
-# Fichiers de compilation
-*.o
-*.a
-*.so
-
-# Fichiers système
-.DS_Store
-Thumbs.db
-
-# Cache Python
 __pycache__/
 *.pyc
-*.pyo
-*.pyd
 
-# IDE
+# Local fixtures: a complete reference libft must never be published
+selftest/
+
+# Editors and systems
 .vscode/
 .idea/
 *.swp
-*.swo
-
-# Autres fichiers temporaires de test
-test_libft/
-temp/
+.DS_Store

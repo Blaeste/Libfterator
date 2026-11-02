@@ -1,145 +1,141 @@
-# 🚀 Libfterator 2025
+# Libfterator v2
 
-[![Tests](https://img.shields.io/badge/Tests-281%2F281-brightgreen)](https://github.com/Blaeste/libfterator)
-[![Norminette](https://img.shields.io/badge/Norminette-100%25-blue)](https://github.com/42School/norminette)
-[![42 School](https://img.shields.io/badge/42-School-000000)](https://42.fr)
-
-> Testeur complet et pro pour la libft de l'École 42 — 281 tests, Valgrind intégré, sur-protection, interface lisible et logs détaillés.
-
-## ⚡ Installation ultra-rapide (copier/coller)
+Testeur pour la libft de 42, à jour du **sujet v19.3**.
 
 ```bash
-git clone https://github.com/Blaeste/libfterator.git
+git clone -b v2 https://github.com/Blaeste/libfterator.git
 cd libfterator
+./libfterator /chemin/vers/ta/libft
 ```
+
+Rien à installer si `cc`, `make` et Python 3 sont présents. Ton projet n'est jamais modifié : tout se passe sur une copie.
+
+Le testeur compile une seule fois puis lance **499 tests comptés** et 40 cas d'information. Un run complet avec tous les contrôles du sujet prend environ 5 secondes.
+
+## Ce qui est vérifié
+
+**Le sujet** (`CONFORMITÉ`) :
+
+| Groupe | Contrôles |
+|---|---|
+| Fichiers | `Makefile`, `libft.h` et `ft_*.c` à la racine, aucun fichier inutile, chaque `ft_*.c` compilé |
+| README | première ligne en italique avec les logins, sections Description, Instructions, Resources, usage de l'IA, description de la bibliothèque |
+| Header | prototypes exacts (dont `unsigned int ft_lstsize`), `t_list`, garde d'inclusion, pas de `restrict` |
+| Makefile | `NAME`, règles, `cc`, `-Wall -Wextra -Werror`, `ar`, pas de `libtool` ni `-std=c99`, pas de relink, effets de `clean`, `fclean`, `re` |
+| Fonctions | les 43 présentes avec `make` seul, helpers `static`, pas de globales, fonctions externes autorisées fonction par fonction |
+| Norme | norminette, si elle est installée |
+
+Chaque contrôle donne `OK` ou `KO`. `WARN` (point à regarder) et `SKIP` (contrôle impossible) ne comptent pas dans le score.
+
+**Les fonctions** (parties 1, 2 et 3). Chaque test contrôle automatiquement :
+
+- **les fuites**, sur tous les tests et sans valgrind ;
+- **les débordements** à l'octet près, grâce à une page protégée juste après chaque bloc : un octet de trop provoque un arrêt immédiat ;
+- **le terminateur oublié** : la mémoire de `malloc` est remplie d'un motif non nul, donc un `\0` manquant se voit à tous les coups ;
+- **les double free, les `free` invalides et les accès après un `free`** ;
+- **les paramètres `const`** : les chaînes d'entrée sont en lecture seule dans les tests concernés.
+
+Les fonctions qui allouent sont aussi testées quand **chaque `malloc` échoue à tour de rôle** : le retour doit être `NULL`, sans fuite ni crash.
+
+## Lire le résultat
+
+```
+ft_strlcat .......................  13/15  KO
+  OOB   dst_not_terminated_within_size
+        lecture 1 octet(s) après la fin d'un buffer de 5 octet(s)
+```
+
+| Statut | Signification |
+|---|---|
+| `FAIL` | mauvais résultat, avec la valeur obtenue et la valeur attendue |
+| `CRASH` | le test a planté, par exemple un segfault |
+| `TIMEOUT` | le test a dépassé la limite (boucle infinie probable) |
+| `LEAK` | de la mémoire n'a pas été libérée |
+| `MEMERR` | double free, `free` invalide ou écriture avant le début d'un bloc |
+| `OOB` | lecture ou écriture hors limites, ou écriture dans un paramètre `const` |
+| `MISSING` | fonction absente de `libft.a` |
+| `VALGRIND` | erreur vue par valgrind (avec `--valgrind`) |
+| `INTERNAL` | le testeur lui-même n'a pas pu continuer, par exemple sans mémoire système |
+
+Pour rejouer un test, ou l'ouvrir dans gdb :
 
 ```bash
-./tester.py /chemin/vers/votre/libft
-# Exemple: ./tester.py ../libft
+./libfterator ../libft --run strlcat/dst_not_terminated
+./libfterator ../libft --gdb strlcat/dst_not_terminated_within_size
 ```
 
-**C'est tout ! Aucune dépendance requise.**
-Fonctionne avec Python 3.6+ (installé par défaut sur les machines 42).
+Sous gdb, tape `run`. L'exécution s'arrête sur l'assertion qui échoue.
 
----
+## Cas indéfinis
 
-## ✨ Points forts
+Le sujet ne définit pas `ft_strlen(NULL)`, `ft_substr(NULL, 0, 5)` ni un `ft_atoi` qui dépasse un `int`. Ces cas apparaissent dans une section à part qui montre ce que fait ta libft, **sans compter dans le score** : une libft protégée et une libft qui ne l'est pas obtiennent la même note.
 
-- ✅ Norminette intégrée (vérification automatique)
-- 🧪 281 tests exhaustifs avec cas limites et edge cases
-- 🔒 Validation de sur-protection (NULL pointers attendus)
-- 🚰 Valgrind intégré avec fallback si non installé
-- 🎨 Interface claire avec sous-sections par fonction
-- 🧾 Logs complets et métriques détaillées
+```
+CAS INDÉFINIS, à titre d'information (non comptés)
+  strlen_null ...................... SIGSEGV
+  substr_null ...................... retourne NULL
+```
 
-## 🎯 Couverture des tests (281)
+## Options
 
-- 📚 Partie 1 — Fonctions de la libc: 149 tests
-- 🔧 Partie 2 — Fonctions supplémentaires: 80 tests
-- 🎁 Bonus — Listes chaînées: 19 tests
-- 🚰 Valgrind — Fuites mémoire: 22 tests
-- 🛡️ Validation — Sur-protection: 8 tests
+| Option | Effet |
+|---|---|
+| `--run MOTIF` | seulement les tests dont le nom contient `MOTIF`, sans les contrôles du sujet |
+| `--list` | liste les tests |
+| `--verbose` | affiche chaque test |
+| `--no-color` | sans couleurs |
+| `--timeout S` | limite par test en secondes, 5 par défaut |
+| `--seed N` | graine des tests aléatoires, 42 par défaut |
+| `--no-conformity` | saute les contrôles du sujet |
+| `--no-norm` | saute la norminette |
+| `--valgrind` | relance chaque test sous valgrind (environ une minute sur 12 cœurs) |
+| `--asan` | recompile la libft avec AddressSanitizer et UBSan |
+| `--gdb NOM` | ouvre un test dans gdb |
+| `--json FICHIER` | écrit les résultats en JSON |
 
-## 💡 Utilisation rapide
+Le code de sortie vaut `0` si tout passe, `1` s'il y a un KO et `2` en cas de mauvaise utilisation. Chaque run écrit un rapport dans `out/`.
+
+## Pré-requis
+
+- Linux ou WSL : l'interception de `malloc` repose sur `ld --wrap`, absent de macOS
+- `cc`, `make`, `ar`, `nm`, Python 3 (testé avec 3.10 et 3.13), clang ou gcc (testé avec clang 12 et gcc 10)
+- En option : norminette, valgrind, gdb
+
+## Ajouter un test
+
+Les tests sont de vrais fichiers C dans `tests/`, et tout nouveau `.c` de ce dossier est compilé automatiquement. Le moteur est détaillé dans `engine/lft_test.h`.
+
+```c
+TEST(strlcpy, truncate)
+{
+	char	*dest = lft_guard_buf(6);	// un octet de trop provoque un OOB
+
+	ASSERT_EQ(ft_strlcpy(dest, "Hello World", 6), 11);
+	ASSERT_STR(dest, "Hello");
+}
+```
+
+Le premier argument de `TEST` est le nom de la fonction sans `ft_`. Pour tester les échecs de `malloc` :
+
+```c
+TEST(strdup, malloc_failure_returns_null)
+{
+	MALLOC_FAIL_LOOP
+	{
+		char	*r = ft_strdup("hello");
+
+		if (lft_mf_injected())
+			ASSERT_NULL(r);
+		else
+			free(r);
+	}
+}
+```
+
+Pour lancer les tests du testeur lui-même :
 
 ```bash
-# Lister tous les tests disponibles
-./tester.py /chemin/vers/libft --list
-
-# Exécuter tous les tests
-./tester.py /chemin/vers/libft
-
-# Exécuter une fonction spécifique
-./tester.py /chemin/vers/libft --run strlen
-./tester.py /chemin/vers/libft --run memcpy
-./tester.py /chemin/vers/libft --run list
-
-# Mode verbeux (progression + logs complets)
-./tester.py /chemin/vers/libft --verbose
-
-# Désactiver les couleurs (pratique pour les logs CI)
-./tester.py /chemin/vers/libft --no-color
-
-# Mode sécurisé (aucune modif temporaire côté projet)
-./tester.py /chemin/vers/libft --safe
+python3 -m unittest discover -s checks
 ```
 
-## 🧰 Options
-
-- --list: affiche tous les tests disponibles et leur nom exécutable
-- --run <nom>: exécute une sous-section (ex: strlen, memcpy, list)
-- --verbose: affiche la progression détaillée et les logs complets
-- --no-color: désactive les couleurs (utile pour la CI/logs)
-
-## 🌟 Fonctionnalités avancées
-
-### 🔍 Détection automatique des headers
-- Recherche de `libft.h` dans `inc/`, `include/`, `includes/`, `headers/` et sous-dossiers
-- Ajout automatique des `-I` nécessaires à la compilation
-- Pas besoin de déplacer `libft.h` à la racine
-
-### 🚰 Tests Valgrind intégrés
-- Détection des fuites mémoire avec `--leak-check=full` et code retour d’erreur dédié
-- Couverture spécifique: `calloc`, `strdup`, `substr`, `strjoin`, `strtrim`, `split`, `itoa`, `strmapi`, et fonctions bonus de listes
-- Fallback gracieux si Valgrind est absent (les tests fonctionnent quand même)
-
-### 🛡️ Tests de sur-protection
-- Vérifie que certaines fonctions crashent sur `NULL` (comportement attendu par la libft)
-- Section séparée des tests normaux pour une lecture claire
-
-### 🎨 Interface lisible
-- Affichage hiérarchique avec sous-sections par fonction (📂)
-- Codes couleur: PASS ✅, FAIL ❌, LEAK 🚰
-- Compteurs de progression et résumés en fin d’exécution
-
-### 🧾 Système de logs
-- Tous les résultats sont sauvegardés dans `out/` avec horodatage
-- Logs norminette, compilation, exécution et métriques
-
-### 🧩 Compatibilité
-- Linux (recommandé) et WSL: support complet; Valgrind disponible via le gestionnaire de paquets
-- macOS: fonctionnement OK; Valgrind n’est pas installé par défaut (fallback automatique)
-- Windows natif: utilisez WSL pour une expérience optimale
-
-### ❓ FAQ rapide
-- Valgrind n’est pas installé ? Les tests s’exécutent quand même, mais sans détection de fuites (fallback). Installez-le via votre gestionnaire de paquets pour activer la section fuites mémoire.
-- Où sont les logs ? Dans le dossier `out/`, avec un horodatage par session.
-- Faut-il déplacer `libft.h` ? Non. Le testeur détecte automatiquement les répertoires d’en-têtes et ajoute les `-I`.
-
-## 🖥️ Pré-requis
-
-- Python 3.6+ (par défaut sur Linux des machines 42)
-- Environnement POSIX (Linux/WSL conseillé). Valgrind est recommandé mais optionnel.
-
-## 🧪 Exemple de sortie (extrait)
-
-```
-╔══════════════════════════════════════════════════════════════════╗
-║                          Libfterator 2025                        ║
-║                   281 tests • 5 sections • color                 ║
-╚══════════════════════════════════════════════════════════════════╝
-
-[norm] check ................................................ PASS
-🔹 PARTIE 1 — Fonctions de la libc
-	📂 strlen
-	 [ 1/281] basic ......................................... PASS
-	 [ 2/281] empty ......................................... PASS
-...
-Résumé — 281/281 PASS • 0 LEAK
-```
-
-## 🤝 Beta testeurs et support
-
-- Un grand merci aux beta testeurs qui ont aidé à stabiliser ce projet 🙌
-- Issues: https://github.com/Blaeste/libfterator/issues
-
----
-
-<div align="center">
-
-⭐ Si ce projet vous aide, pensez à lui mettre une étoile ⭐
-
-[🏠 Accueil](https://github.com/Blaeste/libfterator) • [🐛 Issues](https://github.com/Blaeste/libfterator/issues)
-
-</div>
-
+La correspondance entre les 329 tests de la v1 et ceux de la v2 est dans [docs/PORTAGE.md](docs/PORTAGE.md).

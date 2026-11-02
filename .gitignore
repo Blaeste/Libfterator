@@ -1,0 +1,14 @@
+# Build and run outputs
+build/
+out/
+__pycache__/
+*.pyc
+
+# Local fixtures: a complete reference libft must never be published
+selftest/
+
+# Editors and systems
+.vscode/
+.idea/
+*.swp
+.DS_Store

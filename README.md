@@ -3,7 +3,7 @@
 Testeur pour la libft de 42, à jour du **sujet v19.3**.
 
 ```bash
-git clone https://github.com/Blaeste/libfterator.git
+git clone -b v2 https://github.com/Blaeste/libfterator.git
 cd libfterator
 ./libfterator /chemin/vers/ta/libft
 ```

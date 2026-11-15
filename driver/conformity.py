@@ -90,7 +90,7 @@ def check_files(ws, result):
             problems.append("%s : seul libft.h est demandé" % name)
         elif name.endswith(("_bonus.c", "_bonus.h")):
             bonus.append(name)
-        elif not (name in ("Makefile", "libft.h", "README.md", ".gitignore")
+        elif not (name in ("Makefile", "libft.h", "README.md", ".gitignore", ".git")
                   or name.endswith((".c", ".o", ".a"))):
             extra.append(name)
     if bonus:

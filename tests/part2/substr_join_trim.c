@@ -156,7 +156,7 @@ TEST(substr, every_start_and_length)
 			want[n] = '\0';
 			r = ft_substr(s, start, len);
 			if (r == NULL || strcmp(r, want) != 0)
-				FAILF("ft_substr(%s, %u, %zu) : obtenu %s, attendu %s",
+				FAILF(TR("ft_substr(%s, %u, %zu) : obtenu %s, attendu %s", "ft_substr(%s, %u, %zu): got %s, expected %s"),
 					lft_quote(text), start, len, lft_quote(r), lft_quote(want));
 			free(r);
 		}

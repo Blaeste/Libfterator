@@ -65,7 +65,7 @@ void	lft_register(const char *suite, const char *name, void (*fn)(void),
 {
 	if (g_count == MAX_TESTS)
 	{
-		fprintf(stderr, "libfterator: trop de tests (max %d)\n", MAX_TESTS);
+		fprintf(stderr, TR("libfterator: trop de tests (max %d)\n", "libfterator: too many tests (max %d)\n"), MAX_TESTS);
 		exit(2);
 	}
 	g_tests[g_count].suite = suite;
@@ -104,7 +104,7 @@ static int	compare_tests(const void *pa, const void *pb)
 /* Appelée par les remplaçants générés pour les fonctions absentes de libft.a. */
 void	lft_missing(const char *name)
 {
-	lft_report_fmt(LFT_MISSING, "%s absente de libft.a", name);
+	lft_report_fmt(LFT_MISSING, TR("%s absente de libft.a", "%s missing from libft.a"), name);
 }
 
 /* ------------------------------ Aléatoire ----------------------------- */
@@ -343,7 +343,7 @@ static int	report_outcome(const t_test *t, const t_outcome *out, long ms)
 	else if (WIFSIGNALED(wstatus) && WTERMSIG(wstatus) == SIGALRM)
 	{
 		status = "TIMEOUT";
-		snprintf(detail, sizeof(detail), "plus de %d s", g_timeout);
+		snprintf(detail, sizeof(detail), TR("plus de %d s", "more than %d s"), g_timeout);
 	}
 	else if (WIFSIGNALED(wstatus))
 	{
@@ -359,13 +359,13 @@ static int	report_outcome(const t_test *t, const t_outcome *out, long ms)
 	{
 		status = "CRASH";
 		snprintf(detail, sizeof(detail),
-			"processus terminé sans fin de test (code %d) : %s",
+			TR("processus terminé sans fin de test (code %d) : %s", "process ended before the end of the test (code %d): %s"),
 			WEXITSTATUS(wstatus), out->output);
 	}
 	if (strcmp(t->suite, "info") == 0)
 	{
 		if (strcmp(status, "PASS") == 0)
-			snprintf(detail, sizeof(detail), "retour normal");
+			snprintf(detail, sizeof(detail), TR("retour normal", "normal return"));
 		status = "INFO";
 	}
 	print_line(status, t, ms, detail);
@@ -426,10 +426,11 @@ static void	run_inline(const t_test *t)
 static void	usage(void)
 {
 	fprintf(stderr, "usage: runner [--list] [--run MOTIF] [--only NOM] "
-		"[--timeout S] [--seed N] [--no-fork] [--real-malloc]\n");
+		"[--timeout S] [--seed N] [--no-fork] [--real-malloc] [--lang fr|en]\n");
 	exit(2);
 }
 
+int					lft_en;
 static const char	*g_pattern;
 static const char	*g_only;
 static int			g_list;
@@ -452,6 +453,8 @@ static void	parse_args(int argc, char **argv)
 			g_only = argv[++i];
 		else if (strcmp(argv[i], "--timeout") == 0 && i + 1 < argc)
 			g_timeout = atoi(argv[++i]);
+		else if (strcmp(argv[i], "--lang") == 0 && i + 1 < argc)
+			lft_en = (strcmp(argv[++i], "en") == 0);
 		else if (strcmp(argv[i], "--seed") == 0 && i + 1 < argc)
 			g_seed = (unsigned int)strtoul(argv[++i], NULL, 10);
 		else

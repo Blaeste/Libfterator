@@ -280,7 +280,7 @@ TEST(memmove, every_shift_and_length)
 			ASSERT_PTR(ft_memmove(got + 40 + shift, got + 40, (size_t)len),
 				got + 40 + shift);
 			if (memcmp(got, want, 128) != 0)
-				FAILF("len=%d, décalage=%d : résultat différent de memmove",
+				FAILF(TR("len=%d, décalage=%d : résultat différent de memmove", "len=%d, offset=%d: result not the one of memmove"),
 					len, shift);
 		}
 	}

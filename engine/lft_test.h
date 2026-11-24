@@ -22,6 +22,13 @@ void	lft_register(const char *suite, const char *name, void (*fn)(void),
 	} \
 	static void	lft_t_##suite##_##name(void)
 
+/* ------------------------------ Langue ----------------------------- */
+
+/* 1 avec --lang en : chaque message existe en français et en anglais. */
+extern int	lft_en;
+
+# define TR(fr, en) (lft_en ? (en) : (fr))
+
 /* ---------------------------- Assertions --------------------------- */
 
 void		lft_fail(const char *file, int line, const char *fmt, ...)
@@ -45,13 +52,13 @@ void		lft_assert_sign(const char *file, int line, const char *expr,
 # define ASSERT_TRUE(cond) \
 	do { \
 		if (!(cond)) \
-			FAILF("%s : faux, vrai attendu", #cond); \
+			FAILF(TR("%s : faux, vrai attendu", "%s: false, expected true"), #cond); \
 	} while (0)
 
 # define ASSERT_FALSE(cond) \
 	do { \
 		if (cond) \
-			FAILF("%s : vrai, faux attendu", #cond); \
+			FAILF(TR("%s : vrai, faux attendu", "%s: true, expected false"), #cond); \
 	} while (0)
 
 # define ASSERT_EQ(got, exp) \
@@ -60,7 +67,7 @@ void		lft_assert_sign(const char *file, int line, const char *expr,
 		long long	lft_e = (long long)(exp); \
 		\
 		if (lft_g != lft_e) \
-			FAILF("%s : obtenu %lld, attendu %lld", #got, lft_g, lft_e); \
+			FAILF(TR("%s : obtenu %lld, attendu %lld", "%s: got %lld, expected %lld"), #got, lft_g, lft_e); \
 	} while (0)
 
 # define ASSERT_STR(got, exp) \
@@ -78,7 +85,7 @@ void		lft_assert_sign(const char *file, int line, const char *expr,
 # define ASSERT_NOT_NULL(got) \
 	do { \
 		if ((got) == NULL) \
-			FAILF("%s : NULL, un pointeur attendu", #got); \
+			FAILF(TR("%s : NULL, un pointeur attendu", "%s: NULL, expected a pointer"), #got); \
 	} while (0)
 
 /* ----------------------------- Mémoire ----------------------------- */

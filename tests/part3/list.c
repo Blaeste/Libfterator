@@ -674,8 +674,9 @@ TEST(lstmap, malloc_failure_frees_everything_through_del)
 		{
 			ASSERT_NULL(r);
 			if (g_del_calls != g_map_calls)
-				FAILF("f a créé %d contenu(s), del en a supprimé %d : chaque "
-					"contenu doit passer par del", g_map_calls, g_del_calls);
+				FAILF(TR("f a créé %d contenu(s), del en a supprimé %d : chaque "
+					"contenu doit passer par del", "f made %d content(s), del freed %d of them: each "
+					"content must go through del"), g_map_calls, g_del_calls);
 		}
 		else
 		{

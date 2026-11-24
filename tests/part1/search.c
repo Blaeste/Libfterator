@@ -113,7 +113,7 @@ TEST(strchr, fuzz_against_libc)
 		c = (int)(lft_rand() % 2 ? alphabet[lft_rand() % 4]
 				: (int)(lft_rand() & 0xfff));
 		if (ft_strchr(s, c) != strchr(s, c))
-			FAILF("ft_strchr(%s, %d) différent de strchr", lft_quote(buf), c);
+			FAILF(TR("ft_strchr(%s, %d) différent de strchr", "ft_strchr(%s, %d) not the same as strchr"), lft_quote(buf), c);
 		lft_guard_free(s);
 	}
 }
@@ -244,7 +244,7 @@ TEST(strrchr, fuzz_against_libc)
 		c = (int)(lft_rand() % 2 ? alphabet[lft_rand() % 4]
 				: (int)(lft_rand() & 0xfff));
 		if (ft_strrchr(s, c) != strrchr(s, c))
-			FAILF("ft_strrchr(%s, %d) différent de strrchr", lft_quote(buf), c);
+			FAILF(TR("ft_strrchr(%s, %d) différent de strrchr", "ft_strrchr(%s, %d) not the same as strrchr"), lft_quote(buf), c);
 		lft_guard_free(s);
 	}
 }
@@ -380,7 +380,7 @@ TEST(memchr, fuzz_against_libc)
 			buf[i] = alphabet[lft_rand() % sizeof(alphabet)];
 		c = lft_rand() % 2 ? buf[lft_rand() % 64] : (int)(lft_rand() & 0xfff);
 		if (ft_memchr(buf, c, n) != memchr(buf, c, n))
-			FAILF("ft_memchr(%s, %d, %zu) différent de memchr",
+			FAILF(TR("ft_memchr(%s, %d, %zu) différent de memchr", "ft_memchr(%s, %d, %zu) not the same as memchr"),
 				lft_quote_n(buf, n), c, n);
 	}
 }

@@ -31,20 +31,20 @@ static void	*f_null(void *content)
 	do { \
 		void	*lft_r = (void *)(call); \
 		\
-		INFO("retourne %s", lft_r ? "un pointeur" : "NULL"); \
+		INFO(TR("retourne %s", "returns %s"), lft_r ? TR("un pointeur", "a pointer") : "NULL"); \
 	} while (0)
 
 #define SHOW_VOID(call) \
 	do { \
 		call; \
-		INFO("ne plante pas"); \
+		INFO(TR("ne plante pas", "does not crash")); \
 	} while (0)
 
 /* Arguments NULL en partie 1 */
 
 TEST(info, strlen_null)
 {
-	INFO("retourne %zu", ft_strlen(NULL));
+	INFO(TR("retourne %zu", "returns %zu"), ft_strlen(NULL));
 }
 
 TEST(info, strchr_null)
@@ -59,7 +59,7 @@ TEST(info, strrchr_null)
 
 TEST(info, strncmp_null)
 {
-	INFO("retourne %d", ft_strncmp(NULL, "test", 4));
+	INFO(TR("retourne %d", "returns %d"), ft_strncmp(NULL, "test", 4));
 }
 
 TEST(info, memcpy_null_dest)
@@ -89,7 +89,7 @@ TEST(info, memmove_both_null)
 
 TEST(info, atoi_null)
 {
-	INFO("retourne %d", ft_atoi(NULL));
+	INFO(TR("retourne %d", "returns %d"), ft_atoi(NULL));
 }
 
 TEST(info, strdup_null)
@@ -104,12 +104,12 @@ TEST(info, strnstr_null_haystack_len_zero)
 
 TEST(info, strlcpy_null_dest_size_zero)
 {
-	INFO("retourne %zu", ft_strlcpy(NULL, "abc", 0));
+	INFO(TR("retourne %zu", "returns %zu"), ft_strlcpy(NULL, "abc", 0));
 }
 
 TEST(info, strlcat_null_dest_size_zero)
 {
-	INFO("retourne %zu", ft_strlcat(NULL, "abc", 0));
+	INFO(TR("retourne %zu", "returns %zu"), ft_strlcat(NULL, "abc", 0));
 }
 
 /* Arguments NULL en partie 2 */
@@ -232,24 +232,24 @@ TEST(info, lstiter_null_function)
 
 TEST(info, atoi_overflow_positive)
 {
-	INFO("retourne %d", ft_atoi("999999999999999999999999999999999999999999999"));
+	INFO(TR("retourne %d", "returns %d"), ft_atoi("999999999999999999999999999999999999999999999"));
 }
 
 TEST(info, atoi_overflow_negative)
 {
-	INFO("retourne %d", ft_atoi("-999999999999999999999999999999999999999999999"));
+	INFO(TR("retourne %d", "returns %d"), ft_atoi("-999999999999999999999999999999999999999999999"));
 }
 
 TEST(info, atoi_just_over_int_max)
 {
-	INFO("retourne %d", ft_atoi("2147483648"));
+	INFO(TR("retourne %d", "returns %d"), ft_atoi("2147483648"));
 }
 
 TEST(info, substr_allocation_for_a_huge_len)
 {
 	char	*r = ft_substr("hola", 0, 1000000);
 
-	INFO("alloue %zu octets pour un résultat de 5 octets", lft_last_malloc_size());
+	INFO(TR("alloue %zu octets pour un résultat de 5 octets", "allocates %zu bytes for a result of 5 bytes"), lft_last_malloc_size());
 	free(r);
 }
 
@@ -257,7 +257,7 @@ TEST(info, strtrim_allocation)
 {
 	char	*r = ft_strtrim("     a     ", " ");
 
-	INFO("alloue %zu octets pour un résultat de 2 octets", lft_last_malloc_size());
+	INFO(TR("alloue %zu octets pour un résultat de 2 octets", "allocates %zu bytes for a result of 2 bytes"), lft_last_malloc_size());
 	free(r);
 }
 
@@ -266,5 +266,5 @@ TEST(info, lstmap_when_f_returns_null)
 	t_list	node = {"x", NULL};
 	t_list	*r = ft_lstmap(&node, f_null, del_nothing);
 
-	INFO("retourne %s", r ? "une liste" : "NULL");
+	INFO(TR("retourne %s", "returns %s"), r ? TR("une liste", "a list") : "NULL");
 }

@@ -19,7 +19,7 @@ void	lft_fail(const char *file, int line, const char *fmt, ...)
 	vsnprintf(buf, sizeof(buf), fmt, ap);
 	va_end(ap);
 	if (lft_mf_failed_malloc())
-		lft_report_fmt(LFT_FAIL, "%s:%d: %s (quand le malloc n°%ld échoue)",
+		lft_report_fmt(LFT_FAIL, TR("%s:%d: %s (quand le malloc n°%ld échoue)", "%s:%d: %s (when malloc #%ld fails)"),
 			base, line, buf, lft_mf_failed_malloc());
 	lft_report_fmt(LFT_FAIL, "%s:%d: %s", base, line, buf);
 }
@@ -88,10 +88,10 @@ void	lft_assert_str(const char *file, int line, const char *expr,
 		const char *got, const char *exp)
 {
 	if (got == NULL)
-		lft_fail(file, line, "%s : obtenu NULL, attendu %s", expr,
+		lft_fail(file, line, TR("%s : obtenu NULL, attendu %s", "%s: got NULL, expected %s"), expr,
 			lft_quote(exp));
 	if (strcmp(got, exp) != 0)
-		lft_fail(file, line, "%s : obtenu %s, attendu %s", expr,
+		lft_fail(file, line, TR("%s : obtenu %s, attendu %s", "%s: got %s, expected %s"), expr,
 			lft_quote(got), lft_quote(exp));
 }
 
@@ -107,7 +107,7 @@ void	lft_assert_mem(const char *file, int line, const char *expr,
 	for (i = 0; i < n; i++)
 		if (g[i] != e[i])
 			lft_fail(file, line,
-				"%s : octet %zu sur %zu : obtenu 0x%02x, attendu 0x%02x",
+				TR("%s : octet %zu sur %zu : obtenu 0x%02x, attendu 0x%02x", "%s: byte %zu of %zu: got 0x%02x, expected 0x%02x"),
 				expr, i, n, g[i], e[i]);
 }
 
@@ -117,10 +117,10 @@ void	lft_assert_ptr(const char *file, int line, const char *expr,
 	if (got == exp)
 		return ;
 	if (exp == NULL)
-		lft_fail(file, line, "%s : obtenu %p, attendu NULL", expr, got);
+		lft_fail(file, line, TR("%s : obtenu %p, attendu NULL", "%s: got %p, expected NULL"), expr, got);
 	if (got == NULL)
-		lft_fail(file, line, "%s : obtenu NULL, un pointeur attendu", expr);
-	lft_fail(file, line, "%s : pointeur décalé de %td octet(s)", expr,
+		lft_fail(file, line, TR("%s : obtenu NULL, un pointeur attendu", "%s: got NULL, expected a pointer"), expr);
+	lft_fail(file, line, TR("%s : pointeur décalé de %td octet(s)", "%s: pointer off by %td byte(s)"), expr,
 		(const char *)got - (const char *)exp);
 }
 
@@ -133,6 +133,6 @@ void	lft_assert_sign(const char *file, int line, const char *expr,
 		long long got, long long ref)
 {
 	if (sign_of(got) != sign_of(ref))
-		lft_fail(file, line, "%s : obtenu %lld, signe attendu %s", expr, got,
-			ref > 0 ? "positif" : (ref < 0 ? "négatif" : "zéro"));
+		lft_fail(file, line, TR("%s : obtenu %lld, signe attendu %s", "%s: got %lld, expected sign %s"), expr, got,
+			ref > 0 ? TR("positif", "positive") : (ref < 0 ? TR("négatif", "negative") : TR("zéro", "zero")));
 }

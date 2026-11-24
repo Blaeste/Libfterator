@@ -229,7 +229,7 @@ TEST(strnstr, fuzz_against_the_man_definition)
 		n = lft_guard_str(nbuf);
 		len = lft_rand() % 20;
 		if (ft_strnstr(h, n, len) != model(h, n, len))
-			FAILF("ft_strnstr(%s, %s, %zu) : résultat incorrect",
+			FAILF(TR("ft_strnstr(%s, %s, %zu) : résultat incorrect", "ft_strnstr(%s, %s, %zu): wrong result"),
 				lft_quote(hbuf), lft_quote(nbuf), len);
 		lft_guard_free(h);
 		lft_guard_free(n);

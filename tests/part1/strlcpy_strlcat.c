@@ -18,19 +18,20 @@ static void	check_strlcpy(const char *src_text, size_t size)
 	memset(dst, FILLER, size);
 	ret = ft_strlcpy(dst, src, size);
 	if (ret != srclen)
-		FAILF("strlcpy(%s, size=%zu) : retour %zu, attendu %zu",
+		FAILF(TR("strlcpy(%s, size=%zu) : retour %zu, attendu %zu", "strlcpy(%s, size=%zu): returned %zu, expected %zu"),
 			lft_quote(src_text), size, ret, srclen);
 	if (size > 0)
 	{
 		copied = srclen < size - 1 ? srclen : size - 1;
 		if (memcmp(dst, src_text, copied) != 0 || dst[copied] != '\0')
-			FAILF("strlcpy(%s, size=%zu) : résultat %s", lft_quote(src_text),
+			FAILF(TR("strlcpy(%s, size=%zu) : résultat %s", "strlcpy(%s, size=%zu): result %s"), lft_quote(src_text),
 				size, lft_quote_n(dst, size));
 	}
 	for (i = size > 0 ? copied + 1 : 0; i < size; i++)
 		if (dst[i] != FILLER)
-			FAILF("strlcpy(%s, size=%zu) : octet %zu modifié au-delà du "
-				"terminateur", lft_quote(src_text), size, i);
+			FAILF(TR("strlcpy(%s, size=%zu) : octet %zu modifié au-delà du "
+				"terminateur", "strlcpy(%s, size=%zu): byte %zu changed past the "
+				"terminator"), lft_quote(src_text), size, i);
 	lft_guard_free(src);
 	lft_guard_free(dst);
 }
@@ -63,10 +64,10 @@ static void	check_strlcat(const char *dst_text, const char *src_text, size_t siz
 	}
 	ret = ft_strlcat(dst, src, size);
 	if (ret != expected)
-		FAILF("strlcat(%s, %s, size=%zu) : retour %zu, attendu %zu",
+		FAILF(TR("strlcat(%s, %s, size=%zu) : retour %zu, attendu %zu", "strlcat(%s, %s, size=%zu): returned %zu, expected %zu"),
 			lft_quote(dst_text), lft_quote(src_text), size, ret, expected);
 	if (memcmp(dst, want, cap) != 0)
-		FAILF("strlcat(%s, %s, size=%zu) : résultat %s, attendu %s",
+		FAILF(TR("strlcat(%s, %s, size=%zu) : résultat %s, attendu %s", "strlcat(%s, %s, size=%zu): result %s, expected %s"),
 			lft_quote(dst_text), lft_quote(src_text), size,
 			lft_quote_n(dst, cap), lft_quote_n(want, cap));
 	free(want);

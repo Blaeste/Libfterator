@@ -11,7 +11,7 @@ int	lft_capture_begin(void)
 
 	fd = memfd_create("lft_capture", 0);
 	if (fd < 0)
-		lft_report(LFT_INTERNAL, "memfd_create impossible");
+		lft_report(LFT_INTERNAL, TR("memfd_create impossible", "memfd_create failed"));
 	return (fd);
 }
 
@@ -21,7 +21,7 @@ size_t	lft_capture_end(int fd, char *buf, size_t size)
 	size_t	total;
 
 	if (lseek(fd, 0, SEEK_SET) < 0)
-		lft_report(LFT_INTERNAL, "lseek impossible sur la capture");
+		lft_report(LFT_INTERNAL, TR("lseek impossible sur la capture", "lseek failed on the capture"));
 	total = 0;
 	while (total + 1 < size)
 	{

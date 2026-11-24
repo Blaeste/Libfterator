@@ -20,18 +20,18 @@ static void	check_split(const char *s, char c, const char *const *words)
 	size_t	i;
 
 	if (r == NULL)
-		FAILF("ft_split(%s, %d) : NULL", lft_quote(s), c);
+		FAILF(TR("ft_split(%s, %d) : NULL", "ft_split(%s, %d): NULL"), lft_quote(s), c);
 	for (i = 0; words[i]; i++)
 	{
 		if (r[i] == NULL)
-			FAILF("ft_split(%s, %d) : %zu mot(s), au moins %zu attendu(s)",
+			FAILF(TR("ft_split(%s, %d) : %zu mot(s), au moins %zu attendu(s)", "ft_split(%s, %d): %zu word(s), at least %zu expected"),
 				lft_quote(s), c, i, i + 1);
 		if (strcmp(r[i], words[i]) != 0)
-			FAILF("ft_split(%s, %d) : mot %zu : obtenu %s, attendu %s",
+			FAILF(TR("ft_split(%s, %d) : mot %zu : obtenu %s, attendu %s", "ft_split(%s, %d): word %zu: got %s, expected %s"),
 				lft_quote(s), c, i, lft_quote(r[i]), lft_quote(words[i]));
 	}
 	if (r[i] != NULL)
-		FAILF("ft_split(%s, %d) : mot en trop après %zu mot(s) : %s", lft_quote(s),
+		FAILF(TR("ft_split(%s, %d) : mot en trop après %zu mot(s) : %s", "ft_split(%s, %d): one word too many after %zu word(s): %s"), lft_quote(s),
 			c, i, lft_quote(r[i]));
 	free_split(r);
 }
@@ -316,11 +316,11 @@ TEST(split, fuzz_against_a_simple_model)
 		for (i = 0; i < count; i++)
 		{
 			if (r[i] == NULL || strcmp(r[i], words[i]) != 0)
-				FAILF("ft_split(%s, ',') : mot %zu : obtenu %s, attendu %s",
+				FAILF(TR("ft_split(%s, ',') : mot %zu : obtenu %s, attendu %s", "ft_split(%s, ','): word %zu: got %s, expected %s"),
 					lft_quote(s), i, lft_quote(r[i]), lft_quote(words[i]));
 		}
 		if (r[count] != NULL)
-			FAILF("ft_split(%s, ',') : mot en trop : %s", lft_quote(s),
+			FAILF(TR("ft_split(%s, ',') : mot en trop : %s", "ft_split(%s, ','): one word too many: %s"), lft_quote(s),
 				lft_quote(r[count]));
 		free_split(r);
 		lft_guard_free(guarded);

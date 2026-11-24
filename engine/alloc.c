@@ -64,7 +64,7 @@ static void	*raw_map(size_t len)
 	p = mmap(NULL, len, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS,
 			-1, 0);
 	if (p == MAP_FAILED)
-		lft_report(LFT_INTERNAL, "mmap impossible pour le registre");
+		lft_report(LFT_INTERNAL, TR("mmap impossible pour le registre", "mmap failed for the registry"));
 	return (p);
 }
 
@@ -182,7 +182,7 @@ char	*lft_region_new(size_t size, int kind, int front)
 	if (map == MAP_FAILED)
 		return (NULL);
 	if (mprotect(map + page, rw, PROT_READ | PROT_WRITE) != 0)
-		lft_report(LFT_INTERNAL, "mprotect impossible");
+		lft_report(LFT_INTERNAL, TR("mprotect impossible", "mprotect failed"));
 	if (front)
 	{
 		data = map + page;
@@ -239,8 +239,9 @@ static void	check_canary(const t_lft_region *r)
 	for (p = start; p < data; p++)
 		if (*p != CANARY)
 			lft_report_fmt(LFT_MEM,
-				"écriture %zu octet(s) avant le début d'un bloc malloc de "
-				"%zu octet(s)", (size_t)(data - p), r->size);
+				TR("écriture %zu octet(s) avant le début d'un bloc malloc de "
+				"%zu octet(s)", "write %zu byte(s) before the start of a malloc block of "
+				"%zu byte(s)"), (size_t)(data - p), r->size);
 }
 
 static void	quarantine_push(t_lft_region *r)
@@ -286,7 +287,7 @@ static void	*block_new(size_t size, int kind)
 		{
 			if (size >= HUGE_ALLOC)
 				return (NULL);
-			lft_report(LFT_INTERNAL, "mmap impossible pour un petit bloc");
+			lft_report(LFT_INTERNAL, TR("mmap impossible pour un petit bloc", "mmap failed for a small block"));
 		}
 	}
 	g_live_blocks++;
@@ -315,10 +316,10 @@ void	__wrap_free(void *ptr)
 	r = registry_find(ptr);
 	if (r == NULL || r->kind == LFT_R_GUARD || r->kind == LFT_R_GUARD_RO)
 		lft_report_fmt(LFT_MEM,
-			"free() d'un pointeur qui n'est pas le début d'un bloc malloc (%p)",
+			TR("free() d'un pointeur qui n'est pas le début d'un bloc malloc (%p)", "free() of a pointer that is not the start of a malloc block (%p)"),
 			ptr);
 	if (!r->live)
-		lft_report_fmt(LFT_MEM, "double free d'un bloc de %zu octet(s)",
+		lft_report_fmt(LFT_MEM, TR("double free d'un bloc de %zu octet(s)", "double free of a block of %zu byte(s)"),
 			r->size);
 	r->live = 0;
 	g_live_blocks--;
@@ -339,7 +340,7 @@ void	*lft_alloc(size_t size)
 
 	p = block_new(size, LFT_R_TEST_BLOCK);
 	if (p == NULL)
-		lft_report(LFT_INTERNAL, "lft_alloc impossible");
+		lft_report(LFT_INTERNAL, TR("lft_alloc impossible", "lft_alloc failed"));
 	return (p);
 }
 
@@ -361,7 +362,7 @@ long	lft_live_blocks(void)
 void	lft_check_leaks(void)
 {
 	if (g_live_blocks > 0)
-		lft_report_fmt(LFT_LEAK, "%ld bloc(s) non libéré(s), %zu octet(s)",
+		lft_report_fmt(LFT_LEAK, TR("%ld bloc(s) non libéré(s), %zu octet(s)", "%ld block(s) not freed, %zu byte(s)"),
 			g_live_blocks, g_live_bytes);
 }
 
@@ -385,11 +386,12 @@ static void	mf_end_of_pass(void)
 	if (g_live_blocks != g_mf_base_blocks)
 	{
 		if (failed)
-			lft_report_fmt(LFT_LEAK, "%ld bloc(s) non libéré(s), %zu octet(s) "
-				"quand le malloc n°%ld échoue",
+			lft_report_fmt(LFT_LEAK, TR("%ld bloc(s) non libéré(s), %zu octet(s) "
+				"quand le malloc n°%ld échoue", "%ld block(s) not freed, %zu byte(s) "
+				"when malloc #%ld fails"),
 				g_live_blocks - g_mf_base_blocks,
 				g_live_bytes - g_mf_base_bytes, failed);
-		lft_report_fmt(LFT_LEAK, "%ld bloc(s) non libéré(s), %zu octet(s)",
+		lft_report_fmt(LFT_LEAK, TR("%ld bloc(s) non libéré(s), %zu octet(s)", "%ld block(s) not freed, %zu byte(s)"),
 			g_live_blocks - g_mf_base_blocks,
 			g_live_bytes - g_mf_base_bytes);
 	}
@@ -397,7 +399,7 @@ static void	mf_end_of_pass(void)
 	{
 		g_mf_total = g_calls;
 		if (g_mf_total == 0)
-			lft_report(LFT_FAIL, "aucun appel à malloc pendant le scénario");
+			lft_report(LFT_FAIL, TR("aucun appel à malloc pendant le scénario", "no call to malloc during the scenario"));
 	}
 }
 

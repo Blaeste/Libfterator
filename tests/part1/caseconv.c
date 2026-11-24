@@ -70,7 +70,7 @@ TEST(toupper, every_value)
 
 	for (c = -1; c <= 255; c++)
 		if (ft_toupper(c) != want_upper(c))
-			FAILF("ft_toupper(%d) : obtenu %d, attendu %d", c, ft_toupper(c),
+			FAILF(TR("ft_toupper(%d) : obtenu %d, attendu %d", "ft_toupper(%d): got %d, expected %d"), c, ft_toupper(c),
 				want_upper(c));
 }
 
@@ -133,6 +133,6 @@ TEST(tolower, every_value)
 
 	for (c = -1; c <= 255; c++)
 		if (ft_tolower(c) != want_lower(c))
-			FAILF("ft_tolower(%d) : obtenu %d, attendu %d", c, ft_tolower(c),
+			FAILF(TR("ft_tolower(%d) : obtenu %d, attendu %d", "ft_tolower(%d): got %d, expected %d"), c, ft_tolower(c),
 				want_lower(c));
 }

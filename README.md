@@ -92,8 +92,21 @@ CAS INDÉFINIS, à titre d'information (non comptés)
 | `--asan` | recompile la libft avec AddressSanitizer et UBSan |
 | `--gdb NOM` | ouvre un test dans gdb |
 | `--json FICHIER` | écrit les résultats en JSON |
+| `--lang en` | messages en anglais (français par défaut) |
+| `--version` | affiche la version |
 
 Le code de sortie vaut `0` si tout passe, `1` s'il y a un KO et `2` en cas de mauvaise utilisation. Chaque run écrit un rapport dans `out/`.
+
+Le JSON sert aux autres outils, comme [42pal](https://github.com/Blaeste/42pal). Il est écrit même quand rien n'a pu tourner, et son champ `format` (aujourd'hui `1`) change si un champ change de sens :
+
+```json
+{"format": 1, "tester": "libfterator", "version": "2.0.0", "lang": "fr", "seed": 42,
+ "log": "out/libfterator_….log", "error": null, "notes": [],
+ "conformity": [{"key": "files.layout", "group": "Fichiers", "label": "…", "status": "OK", "detail": ""}],
+ "tests": [{"name": "strlcat/dst_not_terminated", "status": "OOB", "detail": "…", "ms": 3}]}
+```
+
+`error` vaut `{"title", "detail"}` quand les tests n'ont pas pu tourner.
 
 ## Pré-requis
 

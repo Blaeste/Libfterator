@@ -229,7 +229,7 @@ TEST(atoi, fuzz_against_libc_on_arbitrary_text)
 		buf[len] = '\0';
 		s = lft_guard_str(buf);
 		if (ft_atoi(s) != atoi(s))
-			FAILF("ft_atoi(%s) : obtenu %d, atoi donne %d", lft_quote(buf),
+			FAILF(TR("ft_atoi(%s) : obtenu %d, atoi donne %d", "ft_atoi(%s): got %d, atoi gives %d"), lft_quote(buf),
 				ft_atoi(s), atoi(s));
 		lft_guard_free(s);
 	}

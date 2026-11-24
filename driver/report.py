@@ -6,14 +6,16 @@ import sys
 from pathlib import Path
 
 from . import __version__, subject
+from .lang import tr
 
 COUNTED_BAD = ("FAIL", "CRASH", "TIMEOUT", "LEAK", "MEMERR", "OOB", "MISSING",
                "INTERNAL", "VALGRIND")
 
 _PART_OF_SUITE = {f.name[3:]: f.part for f in subject.FUNCTIONS}
 
-PART_TITLES = {1: "PARTIE 1, fonctions de la libc", 2: "PARTIE 2, fonctions supplémentaires",
-               3: "PARTIE 3, listes chaînées"}
+PART_TITLES = {1: ("PARTIE 1, fonctions de la libc", "PART 1, functions of the libc"),
+               2: ("PARTIE 2, fonctions supplémentaires", "PART 2, additional functions"),
+               3: ("PARTIE 3, listes chaînées", "PART 3, linked lists")}
 
 
 class Colors:
@@ -70,8 +72,9 @@ class Reporter:
 
     def banner(self, path):
         c = self.c
-        self.echo("%s%sLibfterator v2%s · sujet libft v19.3" % (c.bold, c.cyan, c.reset))
-        self.echo("%sProjet : %s%s" % (c.dim, path, c.reset))
+        self.echo(tr("%s%sLibfterator v2%s · sujet libft v19.3",
+                     "%s%sLibfterator v2%s · libft subject v19.3") % (c.bold, c.cyan, c.reset))
+        self.echo(tr("%sProjet : %s%s", "%sProject: %s%s") % (c.dim, path, c.reset))
         self.echo()
 
     def section(self, title):
@@ -89,7 +92,7 @@ class Reporter:
     # ------------------------- Conformité ------------------------
 
     def conformity(self, result):
-        self.section("CONFORMITÉ AU SUJET")
+        self.section(tr("CONFORMITÉ AU SUJET", "SUBJECT CONFORMITY"))
         group = None
         for check in result.checks:
             if check.group != group:
@@ -143,13 +146,14 @@ class Reporter:
                 if part is not None:
                     self.echo()
                 part = current
-                self.section(PART_TITLES.get(current, "AUTRES TESTS"))
+                self.section(tr(*PART_TITLES.get(current, ("AUTRES TESTS", "OTHER TESTS"))))
             self.function_line(suite, group)
         if part is not None:
             self.echo()
         info = [r for r in results if r.suite == "info"]
         if info:
-            self.section("CAS INDÉFINIS, à titre d'information (non comptés)")
+            self.section(tr("CAS INDÉFINIS, à titre d'information (non comptés)",
+                            "UNDEFINED CASES, for information (not counted)"))
             for result in info:
                 word = result.name.split("/", 1)[1] + " "
                 dots = "." * max(2, 34 - len(word))
@@ -162,16 +166,16 @@ class Reporter:
 
     def summary(self, conformity, results):
         c = self.c
-        self.section("RÉSUMÉ")
+        self.section(tr("RÉSUMÉ", "SUMMARY"))
         ko = warn = counted = 0
         if conformity is not None:
             ko = sum(1 for x in conformity.checks if x.status == "KO")
             warn = sum(1 for x in conformity.checks if x.status == "WARN")
             counted = sum(1 for x in conformity.checks if x.status in ("OK", "KO"))
             color = c.red if ko else c.green
-            self.echo("  Conformité : %s%d/%d%s%s" % (
+            self.echo(tr("  Conformité : %s%d/%d%s%s", "  Conformity : %s%d/%d%s%s") % (
                 color, counted - ko, counted, c.reset,
-                "  (%d avertissement(s))" % warn if warn else ""))
+                tr("  (%d avertissement(s))", "  (%d warning(s))") % warn if warn else ""))
         scored = [r for r in results if r.suite != "info"]
         bad = [r for r in scored if r.is_bad]
         if scored:
@@ -182,10 +186,12 @@ class Reporter:
         for result in bad:
             by_kind[result.status] = by_kind.get(result.status, 0) + 1
         if by_kind:
-            self.echo("  Détail     : " + ", ".join(
+            self.echo(tr("  Détail     : ", "  Details    : ") + ", ".join(
                 "%d %s" % (n, kind) for kind, n in sorted(by_kind.items())))
-            self.echo("  %sRejouer un test : --run suite/nom, ou --gdb suite/nom pour le "
-                      "déboguer%s" % (c.dim, c.reset))
+            self.echo(tr("  %sRejouer un test : --run suite/nom, ou --gdb suite/nom pour le "
+                         "déboguer%s",
+                         "  %sRun a test again: --run suite/name, or --gdb suite/name to debug "
+                         "it%s") % (c.dim, c.reset))
         self.echo()
 
     def error(self, title, detail=""):

@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from . import subject
+from .lang import tr
 
 ROOT = Path(__file__).resolve().parent.parent
 ENGINE = ROOT / "engine"
@@ -43,7 +44,8 @@ def _compile_one(args):
                           stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                           universal_newlines=True)
     if proc.returncode != 0:
-        raise BuildError("compilation de %s :\n%s" % (Path(source).name, proc.stdout))
+        raise BuildError(tr("compilation de %s :\n%s",
+                            "compiling %s:\n%s") % (Path(source).name, proc.stdout))
     os.replace(str(tmp), str(obj))
     return obj
 
@@ -92,5 +94,6 @@ def link_runner(ws, defined, tests=None, cache=None, cc=None, flags=BASE_FLAGS,
     proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                           universal_newlines=True)
     if proc.returncode != 0:
-        raise BuildError("édition de liens avec libft.a :\n%s" % proc.stdout)
+        raise BuildError(tr("édition de liens avec libft.a :\n%s", "linking with libft.a:\n%s")
+                         % proc.stdout)
     return exe

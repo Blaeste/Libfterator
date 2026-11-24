@@ -6,6 +6,8 @@ import tempfile
 from collections import namedtuple
 from pathlib import Path
 
+from .lang import tr
+
 MakeResult = namedtuple("MakeResult", "code output")
 
 _CLEAN_ENV = ("MAKEFLAGS", "MFLAGS", "MAKELEVEL", "MAKEOVERRIDES", "CC", "CFLAGS",
@@ -49,9 +51,10 @@ class Workspace:
                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                                   env=self.env, timeout=timeout)
         except subprocess.TimeoutExpired:
-            return MakeResult(124, "make %s : plus de %d s" % (" ".join(args), timeout))
+            return MakeResult(124, tr("make %s : plus de %d s",
+                                      "make %s: more than %d s") % (" ".join(args), timeout))
         except OSError as err:
-            return MakeResult(127, "make introuvable : %s" % err)
+            return MakeResult(127, tr("make introuvable : %s", "make not found: %s") % err)
         return MakeResult(proc.returncode, proc.stdout.decode("utf-8", "replace"))
 
     def objects(self):

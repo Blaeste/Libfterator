@@ -1,6 +1,7 @@
 """Tests de bout en bout du lanceur, y compris les modes valgrind et ASan."""
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -216,6 +217,62 @@ class JsonContract(Cli):
     def test_the_version(self):
         proc = subprocess.run([CLI, "--version"], stdout=subprocess.PIPE, universal_newlines=True)
         self.assertEqual(proc.stdout.strip(), "libfterator " + __version__)
+
+
+# Ce qui trahit un texte resté en français.
+FRENCH = re.compile(r"[éèàùâêîôûç]|\b(obtenu|attendu|absente?s?|octets?|manquant|fichiers?|"
+                    r"quand|retour|appel|aucun|contient|dans|avec|pour|sans)\b", re.IGNORECASE)
+
+
+class English(Cli):
+    """--lang en : tout en anglais, le terminal comme le JSON (le français reste par défaut)."""
+
+    def data(self):
+        return json.loads(self.json.read_text(encoding="utf-8"))
+
+    def assertEnglish(self, text):
+        found = FRENCH.search(text)
+        self.assertIsNone(found, "français : %r dans %r" % (found and found.group(0),
+                                                           text[max(0, found.start() - 60):found.end() + 60]
+                                                           if found else ""))
+
+    def test_a_failing_libft_in_english_everywhere(self):
+        proc = self.run_cli("--lang", "en")
+        self.assertEqual(proc.returncode, 1)
+        data = self.data()
+        self.assertEqual(data["lang"], "en")
+        checks = {c["key"]: c for c in data["conformity"]}
+        self.assertEqual(checks["files.layout"]["group"], "Files")
+        self.assertIn("at the root", checks["files.layout"]["label"])
+        tests = {t["name"]: t for t in data["tests"]}
+        self.assertIn("expected", tests["strlen/basic"]["detail"])
+        self.assertIn("SUMMARY", proc.stdout)
+        for check in data["conformity"]:
+            self.assertEnglish(check["group"] + " " + check["label"] + " " + check["detail"])
+        for test in data["tests"]:
+            self.assertEnglish(test["detail"])
+        self.assertEnglish(proc.stdout.replace(str(self.lib), ""))
+
+    def test_a_missing_directory_in_english(self):
+        proc = subprocess.run([CLI, str(self.tmp / "absent"), "--lang", "en", "--json",
+                               str(self.json)], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, universal_newlines=True)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("Directory not found", self.data()["error"]["title"])
+
+    def test_a_libft_that_does_not_build_in_english(self):
+        self.edit("ft_atoi.c", "return (0);", "return (0)")
+        self.run_cli("--lang", "en")
+        self.assertIn("Cannot build libft.a", self.data()["error"]["title"])
+
+    def test_french_stays_the_default(self):
+        self.run_cli("--run", "strlen/basic")
+        self.assertIn("attendu", self.results()["strlen/basic"]["detail"])
+
+    def test_an_unknown_language_is_refused(self):
+        proc = subprocess.run([CLI, str(self.lib), "--lang", "de"], stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, universal_newlines=True)
+        self.assertEqual(proc.returncode, 2)
 
 
 @unittest.skipUnless(shutil.which("valgrind"), "valgrind absent")

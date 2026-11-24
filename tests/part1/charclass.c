@@ -34,7 +34,7 @@ static int	want_print(int c)
 		\
 		for (c = -1; c <= 255; c++) \
 			if (fn(c) != want(c)) \
-				FAILF(#fn "(%d) : obtenu %d, attendu exactement %d", c, \
+				FAILF(TR(#fn "(%d) : obtenu %d, attendu exactement %d", #fn "(%d): got %d, expected exactly %d"), c, \
 					fn(c), want(c)); \
 	} while (0)
 

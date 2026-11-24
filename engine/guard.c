@@ -16,7 +16,7 @@ static void	*guard_or_die(size_t size, int kind, int front)
 
 	p = lft_region_new(size, kind, front);
 	if (p == NULL)
-		lft_report(LFT_INTERNAL, "mmap impossible pour un buffer protégé");
+		lft_report(LFT_INTERNAL, TR("mmap impossible pour un buffer protégé", "mmap failed for a guarded buffer"));
 	return (p);
 }
 
@@ -72,20 +72,20 @@ static const char	*access_word(void *uc)
 {
 #if defined(__x86_64__) && defined(REG_ERR)
 	return ((((ucontext_t *)uc)->uc_mcontext.gregs[REG_ERR] & 2)
-		? "écriture" : "lecture");
+		? TR("écriture", "write") : TR("lecture", "read"));
 #else
 	(void)uc;
-	return ("accès");
+	return (TR("accès", "access"));
 #endif
 }
 
 static const char	*container_word(int kind)
 {
 	if (kind == LFT_R_GUARD)
-		return ("d'un buffer");
+		return (TR("d'un buffer", "of a buffer"));
 	if (kind == LFT_R_GUARD_RO)
-		return ("d'une entrée");
-	return ("d'un bloc malloc");
+		return (TR("d'une entrée", "of an input"));
+	return (TR("d'un bloc malloc", "of a malloc block"));
 }
 
 static void	describe_fault(const t_lft_region *r, const char *addr, void *uc)
@@ -96,18 +96,21 @@ static void	describe_fault(const t_lft_region *r, const char *addr, void *uc)
 	data = (const char *)~r->hidden;
 	word = access_word(uc);
 	if (!r->live)
-		lft_report_fmt(LFT_OOB, "%s dans un bloc de %zu octet(s) déjà libéré",
+		lft_report_fmt(LFT_OOB, TR("%s dans un bloc de %zu octet(s) déjà libéré", "%s in a block of %zu byte(s) already freed"),
 			word, r->size);
 	if (addr >= data + r->size)
-		lft_report_fmt(LFT_OOB, "%s %zu octet(s) après la fin %s de "
-			"%zu octet(s)", word, (size_t)(addr - (data + r->size)) + 1,
+		lft_report_fmt(LFT_OOB, TR("%s %zu octet(s) après la fin %s de "
+			"%zu octet(s)", "%s %zu byte(s) past the end %s of "
+			"%zu byte(s)"), word, (size_t)(addr - (data + r->size)) + 1,
 			container_word(r->kind), r->size);
 	if (addr < data)
-		lft_report_fmt(LFT_OOB, "%s %zu octet(s) avant le début %s de "
-			"%zu octet(s)", word, (size_t)(data - addr),
+		lft_report_fmt(LFT_OOB, TR("%s %zu octet(s) avant le début %s de "
+			"%zu octet(s)", "%s %zu byte(s) before the start %s of "
+			"%zu byte(s)"), word, (size_t)(data - addr),
 			container_word(r->kind), r->size);
-	lft_report_fmt(LFT_OOB, "écriture dans une entrée en lecture seule "
-		"(paramètre const) de %zu octet(s)", r->size);
+	lft_report_fmt(LFT_OOB, TR("écriture dans une entrée en lecture seule "
+		"(paramètre const) de %zu octet(s)", "write into a read-only input "
+		"(const parameter) of %zu byte(s)"), r->size);
 }
 
 /* Si la faute ne touche aucune zone connue, on la rejoue sans handler : le
@@ -122,8 +125,9 @@ static void	on_fault(int sig, siginfo_t *info, void *uc)
 		describe_fault(r, info->si_addr, uc);
 	failed = lft_mf_failed_malloc();
 	if (failed)
-		lft_report_fmt(LFT_CRASH, "%s quand le malloc n°%ld échoue "
-			"(retour de malloc non vérifié ?)",
+		lft_report_fmt(LFT_CRASH, TR("%s quand le malloc n°%ld échoue "
+			"(retour de malloc non vérifié ?)", "%s when malloc #%ld fails "
+			"(return of malloc not checked?)"),
 			sig == SIGBUS ? "SIGBUS" : "SIGSEGV", failed);
 }
 

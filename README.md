@@ -3,7 +3,7 @@
 Testeur pour la libft de 42, à jour du **sujet v19.3**.
 
 ```bash
-git clone -b v2 https://github.com/Blaeste/libfterator.git
+git clone -b v2 https://github.com/Blaeste/Libfterator.git libfterator
 cd libfterator
 ./libfterator /chemin/vers/ta/libft
 ```
@@ -93,6 +93,7 @@ CAS INDÉFINIS, à titre d'information (non comptés)
 | `--gdb NOM` | ouvre un test dans gdb |
 | `--json FICHIER` | écrit les résultats en JSON |
 | `--lang en` | messages en anglais (français par défaut) |
+| `--stream` | une ligne JSON par événement sur la sortie, au fil du run (pour un affichage en direct) |
 | `--version` | affiche la version |
 
 Le code de sortie vaut `0` si tout passe, `1` s'il y a un KO et `2` en cas de mauvaise utilisation. Chaque run écrit un rapport dans `out/`.
@@ -100,13 +101,15 @@ Le code de sortie vaut `0` si tout passe, `1` s'il y a un KO et `2` en cas de ma
 Le JSON sert aux autres outils, comme [42pal](https://github.com/Blaeste/42pal). Il est écrit même quand rien n'a pu tourner, et son champ `format` (aujourd'hui `1`) change si un champ change de sens :
 
 ```json
-{"format": 1, "tester": "libfterator", "version": "2.0.0", "lang": "fr", "seed": 42,
+{"format": 1, "tester": "libfterator", "version": "2.1.0", "lang": "fr", "seed": 42,
  "log": "out/libfterator_….log", "error": null, "notes": [],
  "conformity": [{"key": "files.layout", "group": "Fichiers", "label": "…", "status": "OK", "detail": ""}],
  "tests": [{"name": "strlcat/dst_not_terminated", "status": "OOB", "detail": "…", "ms": 3}]}
 ```
 
 `error` vaut `{"title", "detail"}` quand les tests n'ont pas pu tourner.
+
+Avec `--stream`, la sortie donne les mêmes résultats au fil du run, une ligne JSON par événement : `start`, `step` (`subject`, `build`, `tests`), `check`, `plan` (le nombre de tests à venir), `test` et `error`. Le rapport habituel reste dans `out/`.
 
 ## Pré-requis
 

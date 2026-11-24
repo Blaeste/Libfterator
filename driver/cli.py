@@ -7,7 +7,7 @@ import sys
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-from . import __version__, build, conformity, project, report
+from . import __version__, build, conformity, project, report, stream
 from .lang import lang, set_lang, tr
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -43,14 +43,16 @@ def parse_args(argv):
     parser.add_argument("--json", metavar="FICHIER", help="écrit les résultats en JSON")
     parser.add_argument("--lang", choices=("fr", "en"), default="fr",
                         help="langue des messages (défaut : fr)")
+    parser.add_argument("--stream", action="store_true",
+                        help="une ligne JSON par événement sur la sortie, au fil du run")
     args = parser.parse_args(argv)
     if args.timeout <= 0:
         parser.error("--timeout doit être positif")
     return args
 
 
-def run_tests(exe, args, extra=(), env=None):
-    """Lance le runner et retourne les résultats ligne par ligne."""
+def run_tests(exe, args, extra=(), env=None, on_result=None):
+    """Lance le runner et retourne les résultats ligne par ligne (on_result : à chacun, au fil du run)."""
     cmd = [str(exe), "--timeout", str(args.timeout), "--seed", str(args.seed),
            "--lang", lang()] + list(extra)
     if args.run:
@@ -62,6 +64,8 @@ def run_tests(exe, args, extra=(), env=None):
         parsed = report.parse_line(line)
         if parsed:
             results.append(parsed)
+            if on_result is not None:
+                on_result(parsed)
     proc.wait()
     return results
 
@@ -138,7 +142,13 @@ def asan_env():
 def main(argv=None):
     args = parse_args(sys.argv[1:] if argv is None else argv)
     set_lang(args.lang)
-    rep = report.Reporter(color=False if args.no_color else None, verbose=args.verbose)
+    quiet = None
+    if args.stream:
+        # La sortie est aux événements : le rapport ne va que dans out/.
+        stream.enable(sys.stdout)
+        quiet = open(os.devnull, "w")
+        stream.emit("start", tester="libfterator", version=__version__, lang=lang())
+    rep = report.Reporter(stream=quiet, color=False if args.no_color else None, verbose=args.verbose)
     source = Path(args.libft)
     if not source.is_dir():
         return _usage_error(args, rep, tr("Dossier introuvable : %s",
@@ -165,6 +175,7 @@ def main(argv=None):
 def _usage_error(args, rep, title):
     """Une erreur avant tout test : dite, et gardée dans le JSON s'il est demandé."""
     rep.error(title)
+    stream.emit("error", title=title, detail="")
     if args.json:
         report.to_json(args.json, None, [], args.seed, lang(),
                        error={"title": title, "detail": ""})
@@ -177,7 +188,9 @@ def _run(args, rep, ws, cc):
     if not args.list:
         rep.banner(ws.source)
     if with_conformity:
-        conf = conformity.run_all(ws, norminette=not args.no_norm, cc=cc)
+        stream.emit("step", step="subject")
+        conf = conformity.run_all(ws, norminette=not args.no_norm, cc=cc,
+                                  on_check=stream.check if stream.enabled() else None)
         rep.conformity(conf)
     else:
         conf = conformity.build_only(ws)
@@ -185,6 +198,7 @@ def _run(args, rep, ws, cc):
         title = tr("Impossible de construire libft.a : les tests ne peuvent pas tourner.",
                    "Cannot build libft.a: the tests cannot run.")
         rep.error(title, conf.build_output[-1500:] if not with_conformity else "")
+        stream.emit("error", title=title, detail=conf.build_output[-1500:])
         _finish(args, rep, conf if with_conformity else None, [],
                 error={"title": title, "detail": conf.build_output[-1500:]})
         return EXIT_KO
@@ -197,6 +211,7 @@ def _run(args, rep, ws, cc):
         rep.echo("%s%s%s" % (rep.c.yellow, notes[-1], rep.c.reset))
         rep.echo()
 
+    stream.emit("step", step="build")
     try:
         archive = None
         link_flags = ()
@@ -212,6 +227,7 @@ def _run(args, rep, ws, cc):
         title = tr("Le testeur n'a pas pu être construit avec cette libft.",
                    "The tester could not be built with this libft.")
         rep.error(title, str(err))
+        stream.emit("error", title=title, detail=str(err))
         _finish(args, rep, conf if with_conformity else None, [],
                 error={"title": title, "detail": str(err)}, notes=notes)
         return EXIT_KO
@@ -225,8 +241,21 @@ def _run(args, rep, ws, cc):
         return subprocess.call(["gdb", "-q", "-ex", "break lft_fail", "--args", str(exe),
                                 "--no-fork", "--lang", lang(), "--only", args.gdb])
 
-    results = run_valgrind(exe, args) if args.valgrind else run_tests(exe, args, extra, env)
     prefix = str(ws.lib) + "/"
+    on_result = None
+    if stream.enabled():
+        names = [n for n in list_tests(exe) if not args.run or args.run in n]
+        if args.valgrind:
+            names = [n for n in names if not n.startswith("info/")]
+        stream.emit("plan", tests=len(names))
+        on_result = lambda result: stream.test(result, prefix)  # noqa: E731
+    stream.emit("step", step="tests")
+    if args.valgrind:
+        results = run_valgrind(exe, args)
+        for result in results if on_result else ():
+            on_result(result)
+    else:
+        results = run_tests(exe, args, extra, env, on_result)
     for result in results:
         result.detail = result.detail.replace(prefix, "")
     rep.tests(results)

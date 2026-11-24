@@ -219,6 +219,55 @@ class JsonContract(Cli):
         self.assertEqual(proc.stdout.strip(), "libfterator " + __version__)
 
 
+class Stream(Cli):
+    """--stream : une ligne JSON par événement sur la sortie, au fil du run, pour un affichage en direct."""
+
+    def events(self, *args):
+        proc = subprocess.run([CLI, str(self.lib), "--no-color", "--no-norm", "--stream", "--json",
+                               str(self.json)] + list(args), stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, universal_newlines=True, timeout=300)
+        return proc, [json.loads(line) for line in proc.stdout.splitlines()]
+
+    def test_every_line_is_an_event_in_the_order_of_the_run(self):
+        proc, events = self.events()
+        kinds = [e["event"] for e in events]
+        self.assertEqual(kinds[0], "start")
+        self.assertEqual(events[0]["version"], __version__)
+        steps = [e["step"] for e in events if e["event"] == "step"]
+        self.assertEqual(steps, ["subject", "build", "tests"])
+        # The checks come during the step of the subject, the tests during theirs.
+        first_check = kinds.index("check")
+        first_test = kinds.index("test")
+        self.assertLess(kinds.index("step"), first_check)
+        self.assertLess(first_check, first_test)
+        self.assertEqual(set(events[first_check]), {"event", "key", "group", "label", "status", "detail"})
+        self.assertEqual(set(events[first_test]), {"event", "name", "status", "detail", "ms"})
+
+    def test_the_number_of_tests_comes_before_them(self):
+        _, events = self.events("--no-conformity")
+        plan = [e for e in events if e["event"] == "plan"]
+        tests = [e for e in events if e["event"] == "test"]
+        self.assertEqual(len(plan), 1)
+        self.assertEqual(plan[0]["tests"], len(tests))
+
+    def test_the_json_file_is_the_same_as_without_stream(self):
+        _, events = self.events("--no-conformity")
+        streamed = [e["name"] for e in events if e["event"] == "test"]
+        data = json.loads(self.json.read_text(encoding="utf-8"))
+        self.assertEqual([t["name"] for t in data["tests"]], streamed)
+
+    def test_no_report_on_the_output(self):
+        proc, _ = self.events("--run", "bzero/")
+        self.assertNotIn("RÉSUMÉ", proc.stdout + proc.stderr)
+
+    def test_an_error_is_an_event_too(self):
+        self.edit("ft_atoi.c", "return (0);", "return (0)")
+        _, events = self.events()
+        errors = [e for e in events if e["event"] == "error"]
+        self.assertEqual(len(errors), 1)
+        self.assertIn("libft.a", errors[0]["title"])
+
+
 # Ce qui trahit un texte resté en français.
 FRENCH = re.compile(r"[éèàùâêîôûç]|\b(obtenu|attendu|absente?s?|octets?|manquant|fichiers?|"
                     r"quand|retour|appel|aucun|contient|dans|avec|pour|sans)\b", re.IGNORECASE)

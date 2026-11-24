@@ -47,8 +47,10 @@ class Check:
 
 
 class Result:
-    def __init__(self):
+    def __init__(self, on_check=None):
         self.checks = []
+        # Appelé à chaque contrôle fini (--stream).
+        self.on_check = on_check
         self.archive_ok = False
         self.defined = set()
         self.used_bonus_rule = False
@@ -56,8 +58,13 @@ class Result:
         self.build_output = ""
 
     def add(self, *args):
-        self.checks.append(Check(*args))
-        return self.checks[-1]
+        return self.add_check(Check(*args))
+
+    def add_check(self, check):
+        self.checks.append(check)
+        if self.on_check is not None:
+            self.on_check(check)
+        return check
 
 
 def _tail(text, lines=12):
@@ -626,8 +633,8 @@ def check_norminette(lib, command=None, timeout=180):
 
 # --------------------------------- Tout ----------------------------------
 
-def run_all(ws, norminette=True, cc="cc"):
-    result = Result()
+def run_all(ws, norminette=True, cc="cc", on_check=None):
+    result = Result(on_check)
     norm_future = None
     pool = None
     if norminette:
@@ -641,7 +648,7 @@ def run_all(ws, norminette=True, cc="cc"):
         check_symbols(ws, result)
         check_unused_sources(ws, result)
     if norm_future is not None:
-        result.checks.append(norm_future.result())
+        result.add_check(norm_future.result())
         pool.shutdown()
     # Par la clé : le nom du groupe dépend de la langue.
     order = ("files", "readme", "header", "make", "functions", "norm")

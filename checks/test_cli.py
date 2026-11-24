@@ -9,7 +9,9 @@ import unittest
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from driver import __version__  # noqa: E402
 from fixture import make_fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -167,6 +169,53 @@ class Robustness(Cli):
         (self.lib / "libfterator_v2" / "ft_ignored.c").write_text("not c at all\n")
         proc = self.run_cli("--run", "bzero/size_zero")
         self.assertEqual(proc.returncode, 0, proc.stdout)
+
+
+class JsonContract(Cli):
+    """Le JSON que lisent les autres outils (42pal) : format 1, écrit dans tous les cas."""
+
+    def data(self):
+        return json.loads(self.json.read_text(encoding="utf-8"))
+
+    def test_the_header_of_format_1(self):
+        self.run_cli("--run", "bzero/size_zero")
+        data = self.data()
+        self.assertEqual(data["format"], 1)
+        self.assertEqual(data["tester"], "libfterator")
+        self.assertEqual(data["version"], __version__)
+        self.assertEqual(data["lang"], "fr")
+        self.assertEqual(data["seed"], 42)
+        self.assertIsNone(data["error"])
+        self.assertEqual(data["notes"], [])
+        self.assertTrue(Path(data["log"]).is_file())
+        self.assertEqual(set(data["tests"][0]), {"name", "status", "detail", "ms"})
+
+    def test_each_check_has_its_group_and_its_label(self):
+        self.run_cli()
+        checks = {c["key"]: c for c in self.data()["conformity"]}
+        self.assertEqual(set(checks["files.layout"]), {"key", "group", "label", "status", "detail"})
+        self.assertEqual(checks["files.layout"]["group"], "Fichiers")
+        self.assertIn("libft.h", checks["files.layout"]["label"])
+
+    def test_a_missing_directory_still_writes_the_json(self):
+        proc = subprocess.run([CLI, str(self.tmp / "absent"), "--json", str(self.json)],
+                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                              universal_newlines=True)
+        self.assertEqual(proc.returncode, 2)
+        data = self.data()
+        self.assertIn("absent", data["error"]["title"])
+        self.assertEqual((data["tests"], data["conformity"]), ([], []))
+
+    def test_a_libft_that_does_not_build_gives_the_error_and_the_compiler_output(self):
+        self.edit("ft_atoi.c", "return (0);", "return (0)")
+        self.assertEqual(self.run_cli().returncode, 1)
+        error = self.data()["error"]
+        self.assertIn("libft.a", error["title"])
+        self.assertIn("ft_atoi.c", error["detail"])
+
+    def test_the_version(self):
+        proc = subprocess.run([CLI, "--version"], stdout=subprocess.PIPE, universal_newlines=True)
+        self.assertEqual(proc.stdout.strip(), "libfterator " + __version__)
 
 
 @unittest.skipUnless(shutil.which("valgrind"), "valgrind absent")

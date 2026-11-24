@@ -5,7 +5,7 @@ import re
 import sys
 from pathlib import Path
 
-from . import subject
+from . import __version__, subject
 
 COUNTED_BAD = ("FAIL", "CRASH", "TIMEOUT", "LEAK", "MEMERR", "OOB", "MISSING",
                "INTERNAL", "VALGRIND")
@@ -206,11 +206,27 @@ def write_log(out_dir, reporter):
     return log
 
 
-def to_json(path, conformity, results, seed):
+# La version du JSON : elle change quand un champ change de sens ou disparaît.
+JSON_FORMAT = 1
+
+
+def to_json(path, conformity, results, seed, lang="fr", log=None, error=None, notes=()):
+    """Les résultats pour d'autres outils (42pal) : écrits même quand rien n'a tourné.
+
+    error vaut {"title", "detail"} quand les tests n'ont pas pu tourner."""
     data = {
+        "format": JSON_FORMAT,
+        "tester": "libfterator",
+        "version": __version__,
+        "lang": lang,
         "seed": seed,
-        "conformity": [{"key": c.key, "status": c.status, "detail": c.detail}
+        "log": str(log) if log else None,
+        "error": error,
+        "notes": list(notes),
+        "conformity": [{"key": c.key, "group": c.group, "label": c.label, "status": c.status,
+                        "detail": c.detail}
                        for c in (conformity.checks if conformity else [])],
-        "tests": [{"name": r.name, "status": r.status, "detail": r.detail} for r in results],
+        "tests": [{"name": r.name, "status": r.status, "detail": r.detail, "ms": r.ms}
+                  for r in results],
     }
     Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=1), encoding="utf-8")

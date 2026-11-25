@@ -10,6 +10,10 @@ cd libfterator
 
 Rien à installer si `cc`, `make` et Python 3 sont présents. Ton projet n'est jamais modifié : tout se passe sur une copie.
 
+<p align="center">
+  <img src="docs/images/report.png" alt="Le rapport : la conformité au sujet, une fonction en échec avec le détail de chaque test, le résumé" width="640">
+</p>
+
 Le testeur compile une seule fois puis lance **499 tests comptés** et 40 cas d'information. Un run complet avec tous les contrôles du sujet prend environ 5 secondes.
 
 ## Ce qui est vérifié

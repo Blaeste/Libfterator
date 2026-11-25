@@ -172,6 +172,16 @@ class Robustness(Cli):
         self.assertEqual(proc.returncode, 0, proc.stdout)
 
 
+class Disclaimer(Cli):
+    """Le rapport dit que libfterator aide sans couvrir tous les tests de la correction."""
+
+    def test_at_the_end_of_the_report(self):
+        proc = self.run_cli("--run", "bzero/size_zero")
+        self.assertIn("pas un oracle", proc.stdout)
+        proc = self.run_cli("--run", "bzero/size_zero", "--lang", "en")
+        self.assertIn("not an oracle", proc.stdout)
+
+
 class JsonContract(Cli):
     """Le JSON que lisent les autres outils (42pal) : format 1, écrit dans tous les cas."""
 

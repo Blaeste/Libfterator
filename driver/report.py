@@ -193,6 +193,11 @@ class Reporter:
                          "  %sRun a test again: --run suite/name, or --gdb suite/name to debug "
                          "it%s") % (c.dim, c.reset))
         self.echo()
+        self.echo("%s%s%s" % (c.dim, tr("Un outil d'aide, pas un oracle : il ne couvre pas tous les tests de la "
+                                          "correction. Teste aussi ton projet toi-même.",
+                                          "A helper tool, not an oracle: it does not cover every test of the "
+                                          "evaluation. Test your project yourself too."), c.reset))
+        self.echo()
 
     def error(self, title, detail=""):
         self.echo("%s%s%s" % (self.c.red, title, self.c.reset))

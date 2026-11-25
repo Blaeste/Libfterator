@@ -16,6 +16,8 @@ Rien à installer si `cc`, `make` et Python 3 sont présents. Ton projet n'est j
 
 Le testeur compile une seule fois puis lance **499 tests comptés** et 40 cas d'information. Un run complet avec tous les contrôles du sujet prend environ 5 secondes.
 
+> Un outil d'aide, pas un oracle : il ne couvre pas tous les tests de la correction. Teste aussi ton projet toi-même.
+
 ## Ce qui est vérifié
 
 **Le sujet** (`CONFORMITÉ`) :

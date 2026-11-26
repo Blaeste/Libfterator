@@ -109,7 +109,7 @@ The exit code is `0` if everything passes, `1` if there is a KO and `2` for a wr
 The JSON is for other tools, like [42pal](https://github.com/Blaeste/42pal). It is written even when nothing could run, and its `format` field (`1` today) changes if a field changes meaning:
 
 ```json
-{"format": 1, "tester": "libfterator", "version": "2.1.0", "lang": "en", "seed": 42,
+{"format": 1, "tester": "libfterator", "version": "2.2.0", "lang": "en", "seed": 42,
  "log": "out/libfterator_….log", "error": null, "notes": [],
  "conformity": [{"key": "files.layout", "group": "Files", "label": "…", "status": "OK", "detail": ""}],
  "tests": [{"name": "strlcat/dst_not_terminated", "status": "OOB", "detail": "…", "ms": 3}]}

@@ -39,7 +39,7 @@ Each check gives `OK` or `KO`. `WARN` (a point to look at) and `SKIP` (the check
 
 - **leaks**, on every test and without valgrind;
 - **overflows**, to the byte, thanks to a protected page right after each block: one byte too many stops the test at once;
-- **the forgotten terminator**: the memory of `malloc` is filled with a non-zero pattern, so a missing `\0` always shows;
+- **the forgotten terminator**: the memory of `malloc` is filled with a non-zero pattern, so a missing `\0` always shows in a block up to 1 MB (a bigger block gets the pattern only on its first and last 64 KB);
 - **double frees, invalid `free`s and accesses after a `free`**;
 - **`const` parameters**: the input strings are read-only in the tests concerned.
 

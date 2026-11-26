@@ -127,9 +127,12 @@ def incomplete_run(got, planned, code, stderr=""):
     jamais passer pour un succès."""
     if code in RUNNER_FINISHED and got == planned:
         return None
-    if got != planned:
+    if got < planned:
         title = tr("Les tests se sont arrêtés avant la fin : %d résultat(s) pour %d test(s).",
                    "The tests stopped before the end: %d result(s) for %d test(s).") % (got, planned)
+    elif got > planned:
+        title = tr("Le runner des tests a donné %d résultat(s) pour %d test(s).",
+                   "The test runner gave %d result(s) for %d test(s).") % (got, planned)
     else:
         title = tr("Le runner des tests a fini en erreur.", "The test runner ended with an error.")
     lines = [tr("Le runner des tests : %s.", "The test runner: %s.") % _ending(code)]
@@ -330,17 +333,22 @@ def _run(args, rep, ws, cc):
     for result in results:
         result.detail = result.detail.replace(prefix, "")
     rep.tests(results)
+    planned = None
     if error:
         rep.error(error["title"], error["detail"])
         rep.echo()
         stream.emit("error", title=error["title"], detail=error["detail"])
-    _finish(args, rep, conf if with_conformity else None, results, error=error, notes=notes)
+        # Le résumé dit les tests passés sur ceux qui étaient prévus (sans les info/, jamais comptés).
+        planned = sum(1 for name in names if not name.startswith("info/"))
+    _finish(args, rep, conf if with_conformity else None, results, error=error, notes=notes,
+            planned=planned)
     bad_conf = with_conformity and any(c.status == "KO" for c in conf.checks)
     return EXIT_KO if error or bad_conf or any(r.is_bad for r in results) else EXIT_OK
 
 
-def _finish(args, rep, conf, results, error=None, notes=()):
-    rep.summary(conf, results, incomplete=error is not None)
+def _finish(args, rep, conf, results, error=None, notes=(), planned=None):
+    """planned : les tests comptés prévus, quand le runner s'est arrêté en route (Reporter.summary)."""
+    rep.summary(conf, results, planned=planned)
     log = report.write_log(ROOT / "out", rep)
     print(tr("%sLog complet : %s%s",
              "%sFull log: %s%s") % (rep.c.dim, log, rep.c.reset), file=rep.out)

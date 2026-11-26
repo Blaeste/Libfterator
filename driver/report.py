@@ -164,8 +164,11 @@ class Reporter:
 
     # --------------------------- Résumé --------------------------
 
-    def summary(self, conformity, results, incomplete=False):
-        """incomplete : le runner s'est arrêté en route, les tests passés ne valent pas un succès."""
+    def summary(self, conformity, results, planned=None):
+        """planned : les tests comptés prévus, quand le runner s'est arrêté en route.
+
+        Les tests passés sont alors dits sur ceux prévus (35/499, jamais 35/35),
+        même sans aucun résultat."""
         c = self.c
         self.section(tr("RÉSUMÉ", "SUMMARY"))
         ko = warn = counted = 0
@@ -179,11 +182,13 @@ class Reporter:
                 tr("  (%d avertissement(s))", "  (%d warning(s))") % warn if warn else ""))
         scored = [r for r in results if r.suite != "info"]
         bad = [r for r in scored if r.is_bad]
-        if scored:
-            color = c.red if bad or incomplete else c.green
-            self.echo("  Tests      : %s%d/%d%s%s" % (color, len(scored) - len(bad), len(scored),
-                                                      tr("  (run incomplet)", "  (incomplete run)")
-                                                      if incomplete else "", c.reset))
+        if planned is not None:
+            self.echo("  Tests      : %s%d/%d%s%s" % (c.red, len(scored) - len(bad), planned,
+                                                      tr("  (run incomplet)", "  (incomplete run)"), c.reset))
+        elif scored:
+            color = c.red if bad else c.green
+            self.echo("  Tests      : %s%d/%d%s" % (color, len(scored) - len(bad), len(scored),
+                                                    c.reset))
         by_kind = {}
         for result in bad:
             by_kind[result.status] = by_kind.get(result.status, 0) + 1

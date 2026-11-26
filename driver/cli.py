@@ -8,7 +8,7 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from . import __version__, build, conformity, project, report, stream
-from .lang import lang, set_lang, tr
+from .lang import LANGS, lang, set_lang, tr
 
 ROOT = Path(__file__).resolve().parent.parent
 EXIT_OK = 0
@@ -16,38 +16,64 @@ EXIT_KO = 1
 EXIT_USAGE = 2
 
 
+def asked_lang(argv):
+    """La langue de --lang (ou --lang=), lue avant l'aide pour l'écrire dans cette langue.
+
+    Le dernier --lang compte, comme pour argparse ; une langue inconnue donne le
+    français ici, et argparse la refuse ensuite."""
+    code = "fr"
+    for i, arg in enumerate(argv):
+        if arg == "--lang" and i + 1 < len(argv):
+            code = argv[i + 1]
+        elif arg.startswith("--lang="):
+            code = arg.split("=", 1)[1]
+    return code if code in LANGS else "fr"
+
+
 def parse_args(argv):
+    set_lang(asked_lang(argv))
     parser = argparse.ArgumentParser(
         prog="libfterator",
-        description="Testeur de libft pour le sujet v19.3. Le projet n'est jamais "
-                    "modifié : tout se passe sur une copie.")
-    parser.add_argument("libft", help="dossier de la libft")
+        description=tr("Testeur de libft pour le sujet v19.3. Le projet n'est jamais "
+                       "modifié : tout se passe sur une copie.",
+                       "A tester of the libft for the subject v19.3. The project is never "
+                       "changed: everything happens on a copy."))
+    parser.add_argument("libft", help=tr("dossier de la libft", "folder of the libft"))
     parser.add_argument("--version", action="version", version="libfterator " + __version__)
-    parser.add_argument("--run", metavar="MOTIF",
-                        help="uniquement les tests dont le nom contient MOTIF")
-    parser.add_argument("--list", action="store_true", help="liste les tests sans les lancer")
-    parser.add_argument("--verbose", action="store_true", help="affiche chaque test")
-    parser.add_argument("--no-color", action="store_true", help="désactive les couleurs")
+    parser.add_argument("--run", metavar=tr("MOTIF", "PATTERN"),
+                        help=tr("uniquement les tests dont le nom contient MOTIF",
+                                "only the tests whose name holds PATTERN"))
+    parser.add_argument("--list", action="store_true",
+                        help=tr("liste les tests sans les lancer", "lists the tests without running them"))
+    parser.add_argument("--verbose", action="store_true", help=tr("affiche chaque test", "shows each test"))
+    parser.add_argument("--no-color", action="store_true", help=tr("désactive les couleurs", "no colors"))
     parser.add_argument("--timeout", type=int, default=5, metavar="S",
-                        help="limite par test en secondes (défaut : 5)")
+                        help=tr("limite par test en secondes (défaut : 5)",
+                                "limit per test in seconds (default: 5)"))
     parser.add_argument("--seed", type=int, default=42, metavar="N",
-                        help="graine des tests aléatoires (défaut : 42)")
+                        help=tr("graine des tests aléatoires (défaut : 42)",
+                                "seed of the random tests (default: 42)"))
     parser.add_argument("--no-conformity", action="store_true",
-                        help="saute les contrôles du sujet")
-    parser.add_argument("--no-norm", action="store_true", help="saute la norminette")
+                        help=tr("saute les contrôles du sujet", "skips the checks of the subject"))
+    parser.add_argument("--no-norm", action="store_true",
+                        help=tr("saute la norminette", "skips the norminette"))
     parser.add_argument("--valgrind", action="store_true",
-                        help="relance chaque test sous valgrind")
+                        help=tr("relance chaque test sous valgrind", "runs each test again under valgrind"))
     parser.add_argument("--asan", action="store_true",
-                        help="recompile la libft avec AddressSanitizer et UBSan")
-    parser.add_argument("--gdb", metavar="NOM", help="ouvre un test (suite/nom) dans gdb")
-    parser.add_argument("--json", metavar="FICHIER", help="écrit les résultats en JSON")
-    parser.add_argument("--lang", choices=("fr", "en"), default="fr",
-                        help="langue des messages (défaut : fr)")
+                        help=tr("recompile la libft avec AddressSanitizer et UBSan",
+                                "builds the libft again with AddressSanitizer and UBSan"))
+    parser.add_argument("--gdb", metavar=tr("NOM", "NAME"),
+                        help=tr("ouvre un test (suite/nom) dans gdb", "opens a test (suite/name) in gdb"))
+    parser.add_argument("--json", metavar=tr("FICHIER", "FILE"),
+                        help=tr("écrit les résultats en JSON", "writes the results in JSON"))
+    parser.add_argument("--lang", choices=LANGS, default="fr",
+                        help=tr("langue des messages (défaut : fr)", "language of the messages (default: fr)"))
     parser.add_argument("--stream", action="store_true",
-                        help="une ligne JSON par événement sur la sortie, au fil du run")
+                        help=tr("une ligne JSON par événement sur la sortie, au fil du run",
+                                "one JSON line per event on the output, as the run goes"))
     args = parser.parse_args(argv)
     if args.timeout <= 0:
-        parser.error("--timeout doit être positif")
+        parser.error(tr("--timeout doit être positif", "--timeout must be positive"))
     return args
 
 

@@ -333,6 +333,28 @@ class English(Cli):
                               stderr=subprocess.STDOUT, universal_newlines=True)
         self.assertEqual(proc.returncode, 2)
 
+    def cli(self, *args):
+        return subprocess.run([CLI] + list(args), stdout=subprocess.PIPE,
+                              stderr=subprocess.STDOUT, universal_newlines=True)
+
+    def test_the_help_in_english(self):
+        """--help after --lang en, before it, or as --lang=en: the help is in English."""
+        for args in (("--lang", "en", "--help"), ("--help", "--lang", "en"), ("--lang=en", "--help")):
+            proc = self.cli(*args)
+            self.assertEqual(proc.returncode, 0, args)
+            self.assertIn("A tester of the libft", proc.stdout, args)
+            self.assertIn("folder of the libft", proc.stdout, args)
+            self.assertEnglish(proc.stdout)
+
+    def test_the_help_stays_in_french_by_default(self):
+        proc = self.cli("--help")
+        self.assertIn("Testeur de libft", proc.stdout)
+
+    def test_a_wrong_timeout_is_told_in_english(self):
+        proc = self.cli(str(self.lib), "--timeout", "0", "--lang", "en")
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("--timeout must be positive", proc.stdout)
+
 
 @unittest.skipUnless(shutil.which("valgrind"), "valgrind absent")
 class Valgrind(Cli):

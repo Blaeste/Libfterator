@@ -1,4 +1,5 @@
 """Tests de bout en bout du lanceur, y compris les modes valgrind et ASan."""
+import io
 import json
 import os
 import re
@@ -7,12 +8,15 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from contextlib import redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from driver import __version__  # noqa: E402
+from driver import __version__, build, cli, report  # noqa: E402
+from driver.lang import set_lang  # noqa: E402
 from fixture import make_fixture  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -308,6 +312,8 @@ class DeadRunner(Cli):
         self.assertIn("arrêtés avant la fin", proc.stdout)
         self.assertIn("SIGKILL", proc.stdout)
         self.assertIn("pas un succès", proc.stdout)
+        # Les tests comptés prévus, sans les deux info/ : jamais 2/2.
+        self.assertIn("  Tests      : 2/8  (run incomplet)\n", proc.stdout)
 
     def test_the_stream_gives_the_error_event(self):
         proc = subprocess.run([CLI, str(self.lib), "--no-color", "--stream", "--run", "size_zero",
@@ -330,6 +336,84 @@ class DeadRunner(Cli):
         self.assertIn("stopped before the end: 2 result(s) for 10 test(s)", error["title"])
         self.assertIn("killed by SIGKILL", error["detail"])
         self.assertIn("not a pass", proc.stdout)
+        self.assertIn("  Tests      : 2/8  (incomplete run)\n", proc.stdout)
+
+
+# Un faux runner : la liste de ses deux tests, puis un résultat pour chacun et un code de fin anormal.
+FAKE_RUNNER = """#!/bin/sh
+for arg in "$@"; do
+\tif [ "$arg" = "--list" ]; then
+\t\tprintf 'bzero/size_zero\\nbzero/size_zero_touches_nothing\\n'
+\t\texit 0
+\tfi
+done
+printf 'PASS\\tbzero/size_zero\\t0\\t\\nPASS\\tbzero/size_zero_touches_nothing\\t0\\t\\n'
+echo "libfterator: fork: Resource temporarily unavailable" >&2
+exit 2
+"""
+
+
+class AbnormalExit(Cli):
+    """Un résultat pour chaque test, mais un code de fin anormal : une erreur, pas un succès."""
+
+    def test_every_result_with_exit_code_2_is_an_error(self):
+        runner = self.tmp / "runner.sh"
+        runner.write_text(FAKE_RUNNER)
+        runner.chmod(0o755)
+        self.addCleanup(set_lang, "fr")
+        out = io.StringIO()
+        with mock.patch.object(build, "link_runner", return_value=runner), redirect_stdout(out):
+            code = cli.main([str(self.lib), "--no-color", "--lang", "en", "--run", "bzero/size_zero",
+                             "--json", str(self.json)])
+        self.assertEqual(code, cli.EXIT_KO, out.getvalue())
+        data = json.loads(self.json.read_text(encoding="utf-8"))
+        self.assertEqual([t["status"] for t in data["tests"]], ["PASS", "PASS"])
+        self.assertEqual(data["error"]["title"], "The test runner ended with an error.")
+        self.assertIn("The test runner: exit code 2.", data["error"]["detail"])
+        self.assertIn("fork: Resource temporarily unavailable", data["error"]["detail"])
+        self.assertIn("  Tests      : 2/2  (incomplete run)\n", out.getvalue())
+
+
+class IncompleteRun(unittest.TestCase):
+    """Le titre de l'erreur et la ligne Tests du résumé quand le runner n'est pas allé au bout."""
+
+    def setUp(self):
+        self.addCleanup(set_lang, "fr")
+        set_lang("en")
+
+    def summary(self, results, planned=None):
+        out = io.StringIO()
+        report.Reporter(stream=out, color=False).summary(None, results, planned=planned)
+        return out.getvalue()
+
+    def passed(self, count):
+        return [report.TestResult("PASS", "strlen/t%d" % i, 0, "") for i in range(count)]
+
+    def test_a_complete_run_needs_both_a_normal_code_and_every_result(self):
+        self.assertIsNone(cli.incomplete_run(539, 539, 0))
+        self.assertIsNone(cli.incomplete_run(539, 539, 1))
+        self.assertIn("stopped before the end: 35 result(s) for 539 test(s)",
+                      cli.incomplete_run(35, 539, -9)["title"])
+        self.assertEqual(cli.incomplete_run(539, 539, 2)["title"], "The test runner ended with an error.")
+
+    def test_more_results_than_tests_is_not_called_a_stop(self):
+        title = cli.incomplete_run(540, 539, 0)["title"]
+        self.assertNotIn("stopped", title)
+        self.assertIn("540 result(s) for 539 test(s)", title)
+        set_lang("fr")
+        self.assertNotIn("arrêtés", cli.incomplete_run(540, 539, 0)["title"])
+
+    def test_the_summary_counts_against_the_tests_planned(self):
+        self.assertIn("  Tests      : 35/539  (incomplete run)\n", self.summary(self.passed(35), planned=539))
+        set_lang("fr")
+        self.assertIn("  Tests      : 35/539  (run incomplet)\n", self.summary(self.passed(35), planned=539))
+
+    def test_the_summary_says_it_with_no_result_at_all(self):
+        self.assertIn("  Tests      : 0/539  (incomplete run)\n", self.summary([], planned=539))
+
+    def test_a_complete_run_keeps_its_summary(self):
+        self.assertEqual(self.summary(self.passed(2)).splitlines()[1], "  Tests      : 2/2")
+        self.assertNotIn("Tests", self.summary([]))
 
 
 # Ce qui trahit un texte resté en français.

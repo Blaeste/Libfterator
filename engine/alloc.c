@@ -14,6 +14,8 @@
 #define CANARY 0xCA
 #define QUARANTINE 4096
 #define HUGE_ALLOC (64UL * 1024 * 1024)
+#define POISON_ALL (1024UL * 1024)
+#define POISON_ENDS (64UL * 1024)
 
 void	*__real_malloc(size_t size);
 void	__real_free(void *ptr);
@@ -164,6 +166,21 @@ const t_lft_region	*lft_region_of(const void *data)
 
 /* ------------------------ Régions protégées ------------------------ */
 
+/* The pattern fills a block up to 1 MB. A bigger one (a BUFFER_SIZE of
+** 10000000) gets it on its first and last 64 KB only: filling 10 MB at each
+** malloc made such a run about 50 times slower. Its middle stays as mmap
+** gives it (zeros), and its pages are not touched until the program does. */
+static void	poison(char *data, size_t size)
+{
+	if (size <= POISON_ALL)
+	{
+		memset(data, POISON, size);
+		return ;
+	}
+	memset(data, POISON, POISON_ENDS);
+	memset(data + size - POISON_ENDS, POISON, POISON_ENDS);
+}
+
 /* [page protégée][pages utilisables][page protégée]. Les données sont collées
 ** à la page de fin, ou à celle du début si front est vrai. Le reste de la zone
 ** utilisable reçoit un motif de contrôle pour voir les écritures hors limites. */
@@ -193,7 +210,7 @@ char	*lft_region_new(size_t size, int kind, int front)
 		data = map + page + rw - size;
 		memset(map + page, CANARY, rw - size);
 	}
-	memset(data, POISON, size);
+	poison(data, size);
 	r = registry_add(data);
 	r->map = map;
 	r->map_len = rw + 2 * page;

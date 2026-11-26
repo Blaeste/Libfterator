@@ -115,7 +115,7 @@ The JSON is for other tools, like [42pal](https://github.com/Blaeste/42pal). It 
  "tests": [{"name": "strlcat/dst_not_terminated", "status": "OOB", "detail": "…", "ms": 3}]}
 ```
 
-`error` is `{"title", "detail"}` when the tests could not run.
+`error` is `{"title", "detail"}` when the tests could not run, or when they stopped before the end (the program that runs them died, or gave fewer results than tests): the results before it are kept, and the run is a KO, never a pass.
 
 With `--stream`, the output gives the same results as the run goes, one JSON line per event: `start`, `step` (`subject`, `build`, `tests`), `check`, `plan` (the number of tests to come), `test` and `error`. The usual report stays in `out/`.
 

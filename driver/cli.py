@@ -2,8 +2,10 @@
 import argparse
 import os
 import shutil
+import signal
 import subprocess
 import sys
+import tempfile
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -14,6 +16,10 @@ ROOT = Path(__file__).resolve().parent.parent
 EXIT_OK = 0
 EXIT_KO = 1
 EXIT_USAGE = 2
+# Les codes de fin du runner allé au bout (engine/runner.c) : 0 quand chaque test
+# passe, 1 quand l'un échoue. Un autre code (2 quand fork ou pipe échoue) ou un
+# signal veut dire qu'il s'est arrêté en route.
+RUNNER_FINISHED = (0, 1)
 
 
 def asked_lang(argv):
@@ -78,22 +84,58 @@ def parse_args(argv):
 
 
 def run_tests(exe, args, extra=(), env=None, on_result=None):
-    """Lance le runner et retourne les résultats ligne par ligne (on_result : à chacun, au fil du run)."""
+    """Lance le runner ; retourne (résultats, code de fin, sa sortie d'erreur).
+
+    on_result : appelé à chaque résultat, au fil du run."""
     cmd = [str(exe), "--timeout", str(args.timeout), "--seed", str(args.seed),
            "--lang", lang()] + list(extra)
     if args.run:
         cmd += ["--run", args.run]
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, universal_newlines=True,
-                            errors="replace", env=env)
-    results = []
-    for line in proc.stdout:
-        parsed = report.parse_line(line)
-        if parsed:
-            results.append(parsed)
-            if on_result is not None:
-                on_result(parsed)
-    proc.wait()
-    return results
+    # Dans un fichier et pas un pipe : le runner n'y est jamais bloqué.
+    with tempfile.TemporaryFile() as errors:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=errors,
+                                universal_newlines=True, errors="replace", env=env)
+        results = []
+        for line in proc.stdout:
+            parsed = report.parse_line(line)
+            if parsed:
+                results.append(parsed)
+                if on_result is not None:
+                    on_result(parsed)
+        proc.wait()
+        errors.seek(0)
+        stderr = errors.read().decode("utf-8", "replace")
+    return results, proc.returncode, stderr
+
+
+def _ending(code):
+    """Comment le runner a fini : tué par SIGKILL, code de sortie 2."""
+    if code < 0:
+        try:
+            name = signal.Signals(-code).name
+        except ValueError:
+            name = "signal %d" % -code
+        return tr("tué par %s", "killed by %s") % name
+    return tr("code de sortie %d", "exit code %d") % code
+
+
+def incomplete_run(got, planned, code, stderr=""):
+    """L'erreur d'un run qui n'est pas allé au bout, ou None.
+
+    Un résultat par test de la liste et un code de fin normal : le run est
+    complet. Sinon les tests sans résultat ne comptent pas, et le run ne doit
+    jamais passer pour un succès."""
+    if code in RUNNER_FINISHED and got == planned:
+        return None
+    if got != planned:
+        title = tr("Les tests se sont arrêtés avant la fin : %d résultat(s) pour %d test(s).",
+                   "The tests stopped before the end: %d result(s) for %d test(s).") % (got, planned)
+    else:
+        title = tr("Le runner des tests a fini en erreur.", "The test runner ended with an error.")
+    lines = [tr("Le runner des tests : %s.", "The test runner: %s.") % _ending(code)]
+    lines += stderr.strip().splitlines()[-10:]
+    lines.append(tr("Ce run n'est pas un succès : relance-le.", "This run is not a pass: run it again."))
+    return {"title": title, "detail": "\n".join(lines)}
 
 
 def list_tests(exe):
@@ -268,30 +310,37 @@ def _run(args, rep, ws, cc):
                                 "--no-fork", "--lang", lang(), "--only", args.gdb])
 
     prefix = str(ws.lib) + "/"
+    # La liste des tests à lancer : chacun doit avoir son résultat à la fin.
+    names = [n for n in list_tests(exe) if not args.run or args.run in n]
+    if args.valgrind:
+        names = [n for n in names if not n.startswith("info/")]
     on_result = None
     if stream.enabled():
-        names = [n for n in list_tests(exe) if not args.run or args.run in n]
-        if args.valgrind:
-            names = [n for n in names if not n.startswith("info/")]
         stream.emit("plan", tests=len(names))
         on_result = lambda result: stream.test(result, prefix)  # noqa: E731
     stream.emit("step", step="tests")
+    error = None
     if args.valgrind:
         results = run_valgrind(exe, args)
         for result in results if on_result else ():
             on_result(result)
     else:
-        results = run_tests(exe, args, extra, env, on_result)
+        results, code, errors = run_tests(exe, args, extra, env, on_result)
+        error = incomplete_run(len(results), len(names), code, errors)
     for result in results:
         result.detail = result.detail.replace(prefix, "")
     rep.tests(results)
-    _finish(args, rep, conf if with_conformity else None, results, notes=notes)
+    if error:
+        rep.error(error["title"], error["detail"])
+        rep.echo()
+        stream.emit("error", title=error["title"], detail=error["detail"])
+    _finish(args, rep, conf if with_conformity else None, results, error=error, notes=notes)
     bad_conf = with_conformity and any(c.status == "KO" for c in conf.checks)
-    return EXIT_KO if bad_conf or any(r.is_bad for r in results) else EXIT_OK
+    return EXIT_KO if error or bad_conf or any(r.is_bad for r in results) else EXIT_OK
 
 
 def _finish(args, rep, conf, results, error=None, notes=()):
-    rep.summary(conf, results)
+    rep.summary(conf, results, incomplete=error is not None)
     log = report.write_log(ROOT / "out", rep)
     print(tr("%sLog complet : %s%s",
              "%sFull log: %s%s") % (rep.c.dim, log, rep.c.reset), file=rep.out)

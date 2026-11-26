@@ -164,7 +164,8 @@ class Reporter:
 
     # --------------------------- Résumé --------------------------
 
-    def summary(self, conformity, results):
+    def summary(self, conformity, results, incomplete=False):
+        """incomplete : le runner s'est arrêté en route, les tests passés ne valent pas un succès."""
         c = self.c
         self.section(tr("RÉSUMÉ", "SUMMARY"))
         ko = warn = counted = 0
@@ -179,9 +180,10 @@ class Reporter:
         scored = [r for r in results if r.suite != "info"]
         bad = [r for r in scored if r.is_bad]
         if scored:
-            color = c.red if bad else c.green
-            self.echo("  Tests      : %s%d/%d%s" % (color, len(scored) - len(bad), len(scored),
-                                                    c.reset))
+            color = c.red if bad or incomplete else c.green
+            self.echo("  Tests      : %s%d/%d%s%s" % (color, len(scored) - len(bad), len(scored),
+                                                      tr("  (run incomplet)", "  (incomplete run)")
+                                                      if incomplete else "", c.reset))
         by_kind = {}
         for result in bad:
             by_kind[result.status] = by_kind.get(result.status, 0) + 1

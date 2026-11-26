@@ -278,6 +278,60 @@ class Stream(Cli):
         self.assertIn("libft.a", errors[0]["title"])
 
 
+class DeadRunner(Cli):
+    """Un runner qui meurt en route n'est jamais un succès : le run est une erreur.
+
+    ft_bzero tue le runner (le parent du test) : les deux memset/size_zero
+    passent avant lui, les huit autres tests de --run size_zero n'ont jamais
+    de résultat."""
+
+    def setUp(self):
+        super().setUp()
+        self.edit("ft_bzero.c", "#include <unistd.h>\n", "#include <unistd.h>\n#include <signal.h>\n")
+        self.edit("ft_bzero.c", "(void)s;\n\t(void)n;", "(void)s;\n\t(void)n;\n\tkill(getppid(), SIGKILL);")
+
+    def data(self):
+        return json.loads(self.json.read_text(encoding="utf-8"))
+
+    def test_the_run_is_an_error_and_its_results_are_kept(self):
+        proc = self.run_cli("--run", "size_zero")
+        self.assertEqual(proc.returncode, 1, proc.stdout)
+        self.assertNoTraceback(proc)
+        data = self.data()
+        self.assertEqual([(t["name"], t["status"]) for t in data["tests"]],
+                         [("memset/size_zero", "PASS"), ("memset/size_zero_touches_nothing", "PASS")])
+        self.assertIn("arrêtés avant la fin : 2 résultat(s) pour 10 test(s)", data["error"]["title"])
+        self.assertIn("SIGKILL", data["error"]["detail"])
+
+    def test_the_report_says_it(self):
+        proc = self.run_cli("--run", "size_zero")
+        self.assertIn("arrêtés avant la fin", proc.stdout)
+        self.assertIn("SIGKILL", proc.stdout)
+        self.assertIn("pas un succès", proc.stdout)
+
+    def test_the_stream_gives_the_error_event(self):
+        proc = subprocess.run([CLI, str(self.lib), "--no-color", "--stream", "--run", "size_zero",
+                               "--json", str(self.json)], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, universal_newlines=True, timeout=300)
+        self.assertEqual(proc.returncode, 1)
+        events = [json.loads(line) for line in proc.stdout.splitlines()]
+        plan = [e for e in events if e["event"] == "plan"]
+        tests = [e for e in events if e["event"] == "test"]
+        errors = [e for e in events if e["event"] == "error"]
+        self.assertEqual((plan[0]["tests"], len(tests)), (10, 2))
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["title"], self.data()["error"]["title"])
+        self.assertEqual(events[-1], errors[0])
+
+    def test_in_english(self):
+        proc = self.run_cli("--run", "size_zero", "--lang", "en")
+        self.assertEqual(proc.returncode, 1)
+        error = self.data()["error"]
+        self.assertIn("stopped before the end: 2 result(s) for 10 test(s)", error["title"])
+        self.assertIn("killed by SIGKILL", error["detail"])
+        self.assertIn("not a pass", proc.stdout)
+
+
 # Ce qui trahit un texte resté en français.
 FRENCH = re.compile(r"[éèàùâêîôûç]|\b(obtenu|attendu|absente?s?|octets?|manquant|fichiers?|"
                     r"quand|retour|appel|aucun|contient|dans|avec|pour|sans)\b", re.IGNORECASE)
